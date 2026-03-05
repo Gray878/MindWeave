@@ -30,66 +30,13 @@ const Statistic = () => {
   const isWideScreen = useMediaQuery('(min-width:1190px)');
 
   const timeList = useMemo(() => {
-    const isPro = PROFESSION_VERSION_PERMISSION.includes(license.edition!);
-    const isBusiness = BUSINESS_VERSION_PERMISSION.includes(license.edition!);
     return [
       { label: '近 24 小时', value: 1, disabled: false },
-      {
-        label: (
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={0.5}
-            sx={{ lineHeight: 1 }}
-          >
-            <span>近 7 天</span>
-            <VersionCanUse
-              permission={PROFESSION_VERSION_PERMISSION}
-              mode='icon'
-            />
-          </Stack>
-        ),
-        value: 7,
-        disabled: !isPro,
-      },
-      {
-        label: (
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={0.5}
-            sx={{ lineHeight: 1 }}
-          >
-            <span>近 30 天</span>
-            <VersionCanUse
-              permission={BUSINESS_VERSION_PERMISSION}
-              mode='icon'
-            />
-          </Stack>
-        ),
-        value: 30,
-        disabled: !isBusiness,
-      },
-      {
-        label: (
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={0.5}
-            sx={{ lineHeight: 1 }}
-          >
-            <span>近 90 天</span>
-            <VersionCanUse
-              permission={BUSINESS_VERSION_PERMISSION}
-              mode='icon'
-            />
-          </Stack>
-        ),
-        value: 90,
-        disabled: !isBusiness,
-      },
+      { label: '近 7 天', value: 7, disabled: false },
+      { label: '近 30 天', value: 30, disabled: false },
+      { label: '近 90 天', value: 90, disabled: false },
     ];
-  }, [license]);
+  }, []);
 
   return (
     <Box sx={{ p: 2 }}>

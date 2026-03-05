@@ -226,17 +226,11 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
             完全控制
           </MenuItem>
 
-          <MenuItem
-            value={ConstsUserKBPermission.UserKBPermissionDocManage}
-            disabled={!isPro}
-          >
+          <MenuItem value={ConstsUserKBPermission.UserKBPermissionDocManage}>
             文档管理{' '}
             <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>
-          <MenuItem
-            value={ConstsUserKBPermission.UserKBPermissionDataOperate}
-            disabled={!isPro}
-          >
+          <MenuItem value={ConstsUserKBPermission.UserKBPermissionDataOperate}>
             数据运营{' '}
             <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>

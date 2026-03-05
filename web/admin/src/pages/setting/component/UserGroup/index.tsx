@@ -68,15 +68,10 @@ const UserGroup = ({
     });
   };
   useEffect(() => {
-    if (
-      !kb_id ||
-      enabled !== '2' ||
-      !BUSINESS_VERSION_PERMISSION.includes(license.edition!)
-    )
-      return;
+    if (!kb_id || enabled !== '2') return;
     getUserGroup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kb_id, enabled, license.edition!]);
+  }, [kb_id, enabled]);
 
   const handleMove = async ({
     id,
@@ -122,7 +117,7 @@ const UserGroup = ({
   };
 
   return (
-    <SettingCardItem title='用户组' permission={BUSINESS_VERSION_PERMISSION}>
+    <SettingCardItem title='用户组'>
       <Box
         sx={{
           border: '1px dashed',

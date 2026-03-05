@@ -54,12 +54,7 @@ const PER_OPTIONS = [
     value: ConstsNodeAccessPerm.NodeAccessPermOpen,
   },
   {
-    label: (
-      <Stack direction={'row'} alignItems={'center'}>
-        <span>部分开放</span>
-        <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
-      </Stack>
-    ),
+    label: '部分开放',
     value: ConstsNodeAccessPerm.NodeAccessPermPartial,
   },
   {

@@ -74,12 +74,7 @@ const VersionMask = ({
       <StyledMask sx={sx}>
         <StyledMaskContent>
           <StyledMaskVersion sx={{ backgroundColor: nextVersionInfo.bgColor }}>
-            <img
-              src={nextVersionInfo.image}
-              style={{ width: 12, objectFit: 'contain', marginTop: 1 }}
-              alt={nextVersionInfo.label}
-            />
-            {nextVersionInfo?.label}可用
+            开发中
           </StyledMaskVersion>
         </StyledMaskContent>
       </StyledMask>
@@ -120,21 +115,20 @@ export const VersionCanUse = ({
       }}
     >
       {mode === 'icon' ? (
-        <Tooltip title={nextVersionInfo.label + '可用'} placement='top' arrow>
-          <img
-            src={nextVersionInfo.image}
-            style={{ width: 14, objectFit: 'contain' }}
-            alt={nextVersionInfo.label}
-          />
+        <Tooltip title='开发中' placement='top' arrow>
+          <span
+            style={{
+              fontSize: 12,
+              color: '#999',
+              fontStyle: 'italic',
+            }}
+          >
+            开发中
+          </span>
         </Tooltip>
       ) : (
         <StyledMaskVersion sx={{ backgroundColor: nextVersionInfo.bgColor }}>
-          <img
-            src={nextVersionInfo.image}
-            style={{ width: 12, objectFit: 'contain', marginTop: 1 }}
-            alt={nextVersionInfo.label}
-          />
-          {nextVersionInfo?.label}可用
+          开发中
         </StyledMaskVersion>
       )}
     </StyledMaskContent>

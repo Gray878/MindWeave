@@ -296,16 +296,9 @@ const Header = ({
               {
                 key: 'version',
                 textSx: { flex: 1 },
-                label: (
-                  <StyledMenuSelect disabled={!isBusiness}>
-                    历史版本
-                    <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
-                  </StyledMenuSelect>
-                ),
+                label: <StyledMenuSelect>历史版本</StyledMenuSelect>,
                 onClick: () => {
-                  if (isBusiness) {
-                    navigate(`/doc/editor/history/${detail.id}`);
-                  }
+                  navigate(`/doc/editor/history/${detail.id}`);
                 },
               },
               {

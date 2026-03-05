@@ -109,7 +109,7 @@ const CardRobotApi = ({
       }
       onSubmit={onSubmit}
     >
-      <FormItem label='问答机器人 API' permission={BUSINESS_VERSION_PERMISSION}>
+      <FormItem label='问答机器人 API'>
         <FormControl>
           <Controller
             control={control}
@@ -140,7 +140,7 @@ const CardRobotApi = ({
         </FormControl>
       </FormItem>
 
-      {isEnabled && BUSINESS_VERSION_PERMISSION.includes(license.edition!) && (
+      {isEnabled && (
         <>
           <FormItem label='API Token' required>
             <Controller

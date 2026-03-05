@@ -28,11 +28,11 @@ const VERSION_MAP = {
     max: 1,
   },
   [ConstsLicenseEdition.LicenseEditionProfession]: {
-    message: '专业版最多支持 20 个管理员',
+    message: '开发中,暂不支持更多管理员',
     max: 20,
   },
   [ConstsLicenseEdition.LicenseEditionBusiness]: {
-    message: '商业版最多支持 50 个管理员',
+    message: '开发中,暂不支持更多管理员',
     max: 50,
   },
 };
@@ -283,7 +283,6 @@ const MemberAdd = ({
 
                     <MenuItem
                       value={ConstsUserKBPermission.UserKBPermissionDocManage}
-                      disabled={!isPro}
                     >
                       文档管理{' '}
                       <VersionCanUse
@@ -293,7 +292,6 @@ const MemberAdd = ({
 
                     <MenuItem
                       value={ConstsUserKBPermission.UserKBPermissionDataOperate}
-                      disabled={!isPro}
                     >
                       数据运营{' '}
                       <VersionCanUse

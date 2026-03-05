@@ -427,7 +427,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               </Stack>
             </Tooltip>
           )}
-          <Tooltip arrow title={isBusiness ? '查看历史版本' : ''}>
+          <Tooltip arrow title='查看历史版本'>
             <Stack
               direction={'row'}
               alignItems={'center'}
@@ -435,15 +435,13 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               sx={{
                 fontSize: 12,
                 color: 'text.tertiary',
-                cursor: isBusiness ? 'pointer' : 'text',
+                cursor: 'pointer',
                 ':hover': {
-                  color: isBusiness ? 'primary.main' : 'text.tertiary',
+                  color: 'primary.main',
                 },
               }}
               onClick={() => {
-                if (isBusiness) {
-                  navigate(`/doc/editor/history/${defaultDetail.id}`);
-                }
+                navigate(`/doc/editor/history/${defaultDetail.id}`);
               }}
             >
               <IconAShijian2 sx={{ fontSize: 12 }} />
