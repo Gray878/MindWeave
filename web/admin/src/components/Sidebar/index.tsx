@@ -11,7 +11,6 @@ import {
   IconNeirongguanli,
   IconTongjifenxi1,
   IconJushou,
-  IconGongxian,
   IconPaperFull,
   IconDuihualishi1,
   IconChilun,
@@ -51,14 +50,6 @@ const MENUS = [
       ConstsUserKBPermission.UserKBPermissionFullControl,
       ConstsUserKBPermission.UserKBPermissionDataOperate,
     ],
-  },
-  {
-    label: '贡献',
-    value: '/contribution',
-    pathname: 'contribution',
-    icon: IconGongxian,
-    show: true,
-    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
   },
   {
     label: '问答',
