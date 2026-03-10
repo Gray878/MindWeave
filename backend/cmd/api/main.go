@@ -15,10 +15,12 @@ import (
 // @name	Authorization
 // @description	Type "Bearer" + a space + your token to authorize
 func main() {
-	app, err := createApp()
+	app, cleanup, err := createApp()
 	if err != nil {
 		panic(err)
 	}
+	defer cleanup()
+	
 	if err := setup.CheckInitCert(); err != nil {
 		panic(err)
 	}

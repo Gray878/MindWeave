@@ -16,6 +16,7 @@ import {
   IconDuihualishi1,
   IconChilun,
 } from '@panda-wiki/icons';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
 const MENUS = [
   {
@@ -34,6 +35,17 @@ const MENUS = [
     value: '/stat',
     pathname: 'stat',
     icon: IconTongjifenxi1,
+    show: true,
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionDataOperate,
+    ],
+  },
+  {
+    label: '图谱',
+    value: '/graph',
+    pathname: 'graph',
+    icon: AccountTreeIcon,
     show: true,
     perms: [
       ConstsUserKBPermission.UserKBPermissionFullControl,

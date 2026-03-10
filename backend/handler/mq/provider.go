@@ -6,6 +6,7 @@ import (
 	"github.com/chaitin/panda-wiki/repo/ipdb"
 	"github.com/chaitin/panda-wiki/repo/mq"
 	"github.com/chaitin/panda-wiki/repo/pg"
+	"github.com/chaitin/panda-wiki/store/neo4j"
 	"github.com/chaitin/panda-wiki/store/rag"
 	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/usecase"
@@ -23,11 +24,13 @@ var ProviderSet = wire.NewSet(
 	mq.ProviderSet,
 	ipdb.ProviderSet,
 	s3.ProviderSet,
+	neo4j.ProviderSet,
 
 	usecase.NewLLMUsecase,
 	usecase.NewStatUseCase,
 	usecase.NewNodeUsecase,
 	usecase.NewModelUsecase,
+	usecase.NewGraphSyncUseCase,
 
 	NewRAGMQHandler,
 	NewRagDocUpdateHandler,

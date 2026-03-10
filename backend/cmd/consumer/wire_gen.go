@@ -17,6 +17,7 @@ import (
 	pg2 "github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/chaitin/panda-wiki/store/ipdb"
+	"github.com/chaitin/panda-wiki/store/neo4j"
 	"github.com/chaitin/panda-wiki/store/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
 	"github.com/chaitin/panda-wiki/store/s3"
@@ -25,23 +26,23 @@ import (
 
 // Injectors from wire.go:
 
-func createApp() (*App, error) {
+func createApp() (*App, func(), error) {
 	configConfig, err := config.NewConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	logger := log.NewLogger(configConfig)
 	mqConsumer, err := mq.NewMQConsumer(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ragService, err := rag.NewRAGService(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	db, err := pg.NewDB(configConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	nodeRepository := pg2.NewNodeRepository(db, logger)
 	knowledgeBaseRepository := pg2.NewKnowledgeBaseRepository(db, configConfig, logger, ragService)
@@ -51,28 +52,28 @@ func createApp() (*App, error) {
 	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, promptRepo, logger)
 	mqProducer, err := mq.NewMQProducer(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ragRepository := mq2.NewRAGRepository(mqProducer)
 	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
 	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
 	ragmqHandler, err := mq3.NewRAGMQHandler(mqConsumer, logger, ragService, nodeRepository, knowledgeBaseRepository, llmUsecase, modelUsecase)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ragDocUpdateHandler, err := mq3.NewRagDocUpdateHandler(mqConsumer, logger, nodeRepository)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cacheCache, err := cache.NewCache(configConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	statRepository := pg2.NewStatRepository(db, cacheCache)
 	appRepository := pg2.NewAppRepository(db, logger)
 	ipdbIPDB, err := ipdb.NewIPDB(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ipAddressRepo := ipdb2.NewIPAddressRepo(ipdbIPDB, logger)
 	geoRepo := cache2.NewGeoCache(cacheCache, db, logger)
@@ -81,12 +82,18 @@ func createApp() (*App, error) {
 	userRepository := pg2.NewUserRepository(db, logger)
 	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase)
+	store, cleanup, err := neo4j.ProvideNeo4jStore(configConfig, logger)
+	if err != nil {
+		return nil, nil, err
+	}
+	graphSyncUseCase := usecase.NewGraphSyncUseCase(store)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase, graphSyncUseCase)
 	cronHandler, err := mq3.NewStatCronHandler(logger, statRepository, statUseCase, nodeUsecase)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	mqHandlers := &mq3.MQHandlers{
 		RAGMQHandler:        ragmqHandler,
@@ -99,7 +106,9 @@ func createApp() (*App, error) {
 		MQHandlers:      mqHandlers,
 		StatCronHandler: cronHandler,
 	}
-	return app, nil
+	return app, func() {
+		cleanup()
+	}, nil
 }
 
 // wire.go:

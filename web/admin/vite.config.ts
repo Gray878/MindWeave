@@ -77,6 +77,15 @@ export default defineConfig(({ command, mode }) => {
       // 保留函数和类名，避免第三方库依赖 constructor.name 的逻辑在压缩后失效
       keepNames: true,
     },
+    optimizeDeps: {
+      include: [
+        'graphology',
+        'graphology-layout-forceatlas2',
+        'graphology-layout-noverlap',
+        'graphology-utils',
+        '@sigma/edge-curve',
+      ],
+    },
     plugins: [
       react(),
       generateRoutesPlugin(),
@@ -94,6 +103,10 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
+        'graphology-utils/getters': path.resolve(
+          __dirname,
+          '../node_modules/.pnpm/graphology-utils@2.5.2_graphology-types@0.24.8/node_modules/graphology-utils/getters.js',
+        ),
       },
     },
   };

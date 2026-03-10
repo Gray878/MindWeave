@@ -76,6 +76,12 @@ const router = [
         ),
       },
       {
+        path: '/graph',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/graph'))),
+        ),
+      },
+      {
         path: '/feedback/:tab?',
         element: createElement(
           LazyLoadable(lazy(() => import('./pages/feedback'))),
