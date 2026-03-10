@@ -6,16 +6,27 @@ import {
   CircularProgress,
   Paper,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
-import { AccountTree, Hub, Description, Category } from '@mui/icons-material';
+import {
+  AccountTree,
+  Hub,
+  Description,
+  Category,
+  ViewInAr,
+  GridOn,
+} from '@mui/icons-material';
 import { useAppSelector } from '../../store';
 import GraphCanvas from '../../components/KnowledgeGraph/GraphCanvas';
+import Graph3DCanvas from '../../components/KnowledgeGraph/Graph3DCanvas';
 import { getGraphStats, getAllGraph } from '../../request/Graph';
 import { neo4jToGraphology } from '../../lib/graph-adapter';
 import type Graph from 'graphology';
 import type {
   SigmaNodeAttributes,
   SigmaEdgeAttributes,
+  GraphDataResponse,
 } from '../../types/graph';
 
 function StatItem({ icon, label, value, color }: any) {
@@ -39,9 +50,11 @@ export default function GraphOverview() {
     SigmaNodeAttributes,
     SigmaEdgeAttributes
   > | null>(null);
+  const [graphData, setGraphData] = useState<GraphDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const { kbDetail } = useAppSelector(state => state.config);
 
   const loadGraphData = async () => {
@@ -50,9 +63,10 @@ export default function GraphOverview() {
     try {
       const statsData = await getGraphStats({ kb_id: kbDetail.id! });
       if (statsData) setStats(statsData);
-      const graphData = await getAllGraph({ kb_id: kbDetail.id!, limit: 1000 });
-      if (graphData?.nodes && graphData?.edges) {
-        setGraph(neo4jToGraphology(graphData));
+      const data = await getAllGraph({ kb_id: kbDetail.id!, limit: 1000 });
+      if (data?.nodes && data?.edges) {
+        setGraphData(data);
+        setGraph(neo4jToGraphology(data));
       }
     } catch (err: any) {
       setError(err.message || '加载失败');
@@ -64,6 +78,10 @@ export default function GraphOverview() {
   useEffect(() => {
     if (kbDetail.id) loadGraphData();
   }, [kbDetail.id]);
+
+  const handleViewModeChange = (_: any, newMode: '2d' | '3d' | null) => {
+    if (newMode) setViewMode(newMode);
+  };
 
   if (loading) {
     return (
@@ -80,12 +98,13 @@ export default function GraphOverview() {
     );
   }
 
-  if (error)
+  if (error) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity='error'>{error}</Alert>
       </Box>
     );
+  }
 
   if (!stats || stats.total_nodes === 0) {
     return (
@@ -108,41 +127,70 @@ export default function GraphOverview() {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Paper sx={{ m: 2, p: 2 }} elevation={0}>
-        <Stack direction='row' spacing={4} flexWrap='wrap'>
-          <StatItem
-            icon={<Hub />}
-            label='节点'
-            value={stats.total_nodes}
-            color='#6366f1'
-          />
-          <StatItem
-            icon={<Hub />}
-            label='关系'
-            value={stats.total_edges}
-            color='#10b981'
-          />
-          <StatItem
-            icon={<Description />}
-            label='文档'
-            value={stats.document_count}
-            color='#f59e0b'
-          />
-          <StatItem
-            icon={<Category />}
-            label='实体'
-            value={stats.entity_count}
-            color='#ec4899'
-          />
-          <StatItem
-            icon={<Hub />}
-            label='平均连接'
-            value={stats.avg_connections?.toFixed(1)}
-            color='#8b5cf6'
-          />
+        <Stack
+          direction='row'
+          spacing={4}
+          flexWrap='wrap'
+          alignItems='center'
+          justifyContent='space-between'
+        >
+          <Stack direction='row' spacing={4} flexWrap='wrap'>
+            <StatItem
+              icon={<Hub />}
+              label='节点'
+              value={stats.total_nodes}
+              color='#6366f1'
+            />
+            <StatItem
+              icon={<Hub />}
+              label='关系'
+              value={stats.total_edges}
+              color='#10b981'
+            />
+            <StatItem
+              icon={<Description />}
+              label='文档'
+              value={stats.document_count}
+              color='#f59e0b'
+            />
+            <StatItem
+              icon={<Category />}
+              label='实体'
+              value={stats.entity_count}
+              color='#ec4899'
+            />
+            <StatItem
+              icon={<Hub />}
+              label='平均连接'
+              value={stats.avg_connections?.toFixed(1)}
+              color='#8b5cf6'
+            />
+          </Stack>
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            size='small'
+            sx={{ bgcolor: 'background.paper' }}
+          >
+            <ToggleButton value='2d' sx={{ px: 2 }}>
+              <GridOn sx={{ mr: 0.5, fontSize: 18 }} />
+              2D
+            </ToggleButton>
+            <ToggleButton value='3d' sx={{ px: 2 }}>
+              <ViewInAr sx={{ mr: 0.5, fontSize: 18 }} />
+              3D
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Stack>
       </Paper>
       <Box sx={{ flex: 1, m: 2, mt: 0 }}>
-        {graph && <GraphCanvas graph={graph} height='100%' />}
+        {viewMode === '2d' && graph && (
+          <GraphCanvas graph={graph} height='100%' />
+        )}
+        {viewMode === '3d' && graphData && (
+          <Graph3DCanvas data={graphData} height='100%' />
+        )}
       </Box>
     </Box>
   );
