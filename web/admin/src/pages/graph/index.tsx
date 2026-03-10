@@ -29,18 +29,18 @@ import type {
   GraphDataResponse,
 } from '../../types/graph';
 
+const GRAPH_PAGE_HEIGHT = 'calc(100vh - 64px)';
+
 function StatItem({ icon, label, value, color }: any) {
   return (
-    <Stack direction='row' spacing={1.5} alignItems='center'>
-      <Box sx={{ color, display: 'flex' }}>{icon}</Box>
-      <Box>
-        <Typography variant='caption' color='text.secondary'>
-          {label}
-        </Typography>
-        <Typography variant='h6' fontWeight='600'>
-          {value || 0}
-        </Typography>
-      </Box>
+    <Stack direction='row' spacing={0.6} alignItems='center'>
+      <Box sx={{ color, display: 'flex', fontSize: 14 }}>{icon}</Box>
+      <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+        {label}:
+      </Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>
+        {value || 0}
+      </Typography>
     </Stack>
   );
 }
@@ -90,7 +90,7 @@ export default function GraphOverview() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100%',
+          minHeight: GRAPH_PAGE_HEIGHT,
         }}
       >
         <CircularProgress />
@@ -113,7 +113,7 @@ export default function GraphOverview() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%',
+          minHeight: GRAPH_PAGE_HEIGHT,
         }}
       >
         <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -125,16 +125,32 @@ export default function GraphOverview() {
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Paper sx={{ m: 2, p: 2 }} elevation={0}>
+    <Box
+      sx={{
+        minHeight: GRAPH_PAGE_HEIGHT,
+        height: GRAPH_PAGE_HEIGHT,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Paper
+        sx={{
+          mx: 2,
+          mt: 0.5,
+          mb: 1,
+          px: 1.25,
+          py: 0.75,
+          borderRadius: 1.5,
+        }}
+        elevation={0}
+      >
         <Stack
           direction='row'
-          spacing={4}
-          flexWrap='wrap'
+          spacing={2}
           alignItems='center'
           justifyContent='space-between'
         >
-          <Stack direction='row' spacing={4} flexWrap='wrap'>
+          <Stack direction='row' spacing={2} alignItems='center'>
             <StatItem
               icon={<Hub />}
               label='节点'
@@ -173,18 +189,18 @@ export default function GraphOverview() {
             size='small'
             sx={{ bgcolor: 'background.paper' }}
           >
-            <ToggleButton value='2d' sx={{ px: 2 }}>
-              <GridOn sx={{ mr: 0.5, fontSize: 18 }} />
+            <ToggleButton value='2d' sx={{ px: 1.5, py: 0.25 }}>
+              <GridOn sx={{ mr: 0.5, fontSize: 16 }} />
               2D
             </ToggleButton>
-            <ToggleButton value='3d' sx={{ px: 2 }}>
-              <ViewInAr sx={{ mr: 0.5, fontSize: 18 }} />
+            <ToggleButton value='3d' sx={{ px: 1.5, py: 0.25 }}>
+              <ViewInAr sx={{ mr: 0.5, fontSize: 16 }} />
               3D
             </ToggleButton>
           </ToggleButtonGroup>
         </Stack>
       </Paper>
-      <Box sx={{ flex: 1, m: 2, mt: 0 }}>
+      <Box sx={{ flex: 1, mx: 2, mt: 0, mb: 1.5, minHeight: 0 }}>
         {viewMode === '2d' && graph && (
           <GraphCanvas graph={graph} height='100%' />
         )}
