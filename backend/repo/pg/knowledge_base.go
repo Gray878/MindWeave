@@ -405,7 +405,7 @@ func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, maxKB
 						Icon:     "",
 						ShowIcon: false,
 						Target:   "_blank",
-						Text:     "PandaWiki",
+						Text:     "MindWeave",
 						URL:      "https://pandawiki.docs.baizhi.cloud",
 						Variant:  "outlined",
 					},

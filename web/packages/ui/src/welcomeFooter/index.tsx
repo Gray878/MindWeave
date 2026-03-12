@@ -109,7 +109,7 @@ const Footer = React.memo(
                     {footerSetting?.brand_logo && (
                       <img
                         src={footerSetting.brand_logo}
-                        alt='PandaWiki'
+                        alt='MindWeave'
                         height={24}
                       />
                     )}
@@ -345,7 +345,7 @@ const Footer = React.memo(
                     }}
                   >
                     <Box>{decodeBase64(PROJECT_NAME)}</Box>
-                    <img src={logo} alt='PandaWiki' width={0} height={0} />
+                    <img src={logo} alt='MindWeave' width={0} height={0} />
                   </Stack>
                 </Link>
               </Stack>
@@ -484,7 +484,7 @@ const Footer = React.memo(
                     {footerSetting?.brand_logo && (
                       <img
                         src={footerSetting.brand_logo}
-                        alt='PandaWiki'
+                        alt='MindWeave'
                         height={36}
                       />
                     )}
@@ -773,7 +773,7 @@ const Footer = React.memo(
                           }}
                         >
                           <Box>{decodeBase64(PROJECT_NAME)}</Box>
-                          <img src={logo} alt='PandaWiki' width={0} />
+                          <img src={logo} alt='MindWeave' width={0} />
                         </Stack>
                       </Link>
                     </Stack>

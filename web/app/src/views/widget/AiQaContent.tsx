@@ -937,7 +937,7 @@ const AiQaContent: React.FC<{
                     </Stack>
                     <Box>
                       {widget?.settings?.widget_bot_settings?.disclaimer ||
-                        '本回答由 PandaWiki AI 自动生成，仅供参考。'}
+                        '本回答由 MindWeave AI 自动生成，仅供参考。'}
                     </Box>
                   </StyledActionStack>
                 )}

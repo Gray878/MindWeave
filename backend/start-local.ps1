@@ -1,6 +1,6 @@
 # 本地启动后端服务脚本
 
-Write-Host "=== 启动 PandaWiki 后端服务 ===" -ForegroundColor Green
+Write-Host "=== 启动 MindWeave 后端服务 ===" -ForegroundColor Green
 Write-Host ""
 
 # 检查 .env.local 文件

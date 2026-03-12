@@ -84,7 +84,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              PandaWiki
+              MindWeave
             </Stack>
             <TextField
               value={account}
