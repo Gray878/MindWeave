@@ -9,6 +9,20 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
+const (
+	documentRelationMinCommonTokens = 3
+	documentRelationMinScore        = 0.18
+	documentRelationPreviewKeywords = 20
+)
+
+func kbNodeFilterClause(alias string) string {
+	return fmt.Sprintf(`(
+		%[1]s.kb_id = $kbID
+		OR (%[1]s:KnowledgeBase AND %[1]s.id = $kbID)
+		OR (%[1]s:User AND EXISTS { MATCH (d:Document {kb_id: $kbID})-[:CREATED_BY]->(%[1]s) })
+	)`, alias)
+}
+
 // GetNodeGraph 获取节点及其关系图谱
 func (s *Store) GetNodeGraph(ctx context.Context, nodeID string, depth int) (*domain.GraphDataResp, error) {
 	query := `
@@ -145,15 +159,21 @@ func (s *Store) FindPaths(ctx context.Context, startNodeID, endNodeID string, ma
 // GetGraphStats 获取图谱统计信息
 func (s *Store) GetGraphStats(ctx context.Context, kbID string) (*domain.GraphStatsResp, error) {
 	// 查询节点统计
+	nodeFilter := kbNodeFilterClause("n")
+	edgeStartFilter := kbNodeFilterClause("a")
+	edgeEndFilter := kbNodeFilterClause("b")
+
 	nodeQuery := `
 		MATCH (n)
+		WHERE ` + nodeFilter + `
 		WITH labels(n)[0] as nodeType, count(n) as count
 		RETURN nodeType, count
 	`
 
 	// 查询边统计
 	edgeQuery := `
-		MATCH ()-[r]->()
+		MATCH (a)-[r]->(b)
+		WHERE ` + edgeStartFilter + ` AND ` + edgeEndFilter + `
 		WITH type(r) as edgeType, count(r) as count
 		RETURN edgeType, count
 	`
@@ -161,11 +181,17 @@ func (s *Store) GetGraphStats(ctx context.Context, kbID string) (*domain.GraphSt
 	// 查询总数
 	totalQuery := `
 		MATCH (n)
+		WHERE ` + nodeFilter + `
 		WITH count(DISTINCT n) as totalNodes
-		OPTIONAL MATCH ()-[r]->()
+		OPTIONAL MATCH (a)-[r]->(b)
+		WHERE ` + edgeStartFilter + ` AND ` + edgeEndFilter + `
 		WITH totalNodes, count(DISTINCT r) as totalEdges
 		RETURN totalNodes, totalEdges
 	`
+
+	params := map[string]interface{}{
+		"kbID": kbID,
+	}
 
 	result, err := s.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		stats := &domain.GraphStatsResp{
@@ -174,7 +200,7 @@ func (s *Store) GetGraphStats(ctx context.Context, kbID string) (*domain.GraphSt
 		}
 
 		// 获取节点统计（暂时不过滤 kb_id）
-		nodeRes, err := tx.Run(ctx, nodeQuery, nil)
+		nodeRes, err := tx.Run(ctx, nodeQuery, params)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +228,7 @@ func (s *Store) GetGraphStats(ctx context.Context, kbID string) (*domain.GraphSt
 		}
 
 		// 获取边统计（暂时不过滤 kb_id）
-		edgeRes, err := tx.Run(ctx, edgeQuery, nil)
+		edgeRes, err := tx.Run(ctx, edgeQuery, params)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +246,7 @@ func (s *Store) GetGraphStats(ctx context.Context, kbID string) (*domain.GraphSt
 		}
 
 		// 获取总数（暂时不过滤 kb_id）
-		totalRes, err := tx.Run(ctx, totalQuery, nil)
+		totalRes, err := tx.Run(ctx, totalQuery, params)
 		if err != nil {
 			return nil, err
 		}
@@ -361,27 +387,115 @@ func getNodeType(labels []string) string {
 
 // BuildDocumentRelationsByKeyword 基于关键词构建文档关系
 func (s *Store) BuildDocumentRelationsByKeyword(ctx context.Context, kbID string) (int, error) {
-	// 使用简单的策略：如果两个文档名称有共同的2个字以上的词，就建立关系
-	query := `
-		MATCH (d1:Document), (d2:Document)
-		WHERE d1.kb_id = $kbID AND d2.kb_id = $kbID
-		  AND d1.id < d2.id
-		WITH d1, d2, 
-		     [word IN split(d1.name, ' ') WHERE size(word) >= 2 | word] as words1,
-		     [word IN split(d2.name, ' ') WHERE size(word) >= 2 | word] as words2
-		WITH d1, d2, 
-		     [word IN words1 WHERE word IN words2] as commonWords
-		WHERE size(commonWords) > 0
-		MERGE (d1)-[r:RELATED_BY_KEYWORD]->(d2)
-		SET r.keywords = commonWords,
-		    r.created_at = datetime()
-		RETURN count(r) as relationCount
+	deleteQuery := `
+		MATCH (d1:Document {kb_id: $kbID})-[r:RELATED_BY_KEYWORD]-(d2:Document {kb_id: $kbID})
+		DELETE r
 	`
-
-	params := map[string]interface{}{
-		"kbID": kbID,
+	if _, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		return tx.Run(ctx, deleteQuery, map[string]interface{}{"kbID": kbID})
+	}); err != nil {
+		return 0, fmt.Errorf("failed to clear existing document relations: %w", err)
 	}
 
+	query := fmt.Sprintf(`
+		MATCH (d1:Document {kb_id: $kbID}), (d2:Document {kb_id: $kbID})
+		WHERE d1.id < d2.id
+		WITH d1, d2,
+		     CASE
+		       WHEN size(coalesce(d1.tokens, [])) = 0 THEN [word IN split(toLower(d1.name), ' ') WHERE size(word) >= 2 | word]
+		       ELSE coalesce(d1.tokens, [])
+		     END AS tokens1,
+		     CASE
+		       WHEN size(coalesce(d2.tokens, [])) = 0 THEN [word IN split(toLower(d2.name), ' ') WHERE size(word) >= 2 | word]
+		       ELSE coalesce(d2.tokens, [])
+		     END AS tokens2
+		WHERE size(tokens1) > 0 AND size(tokens2) > 0
+		WITH d1, d2, tokens1, tokens2, [token IN tokens1 WHERE token IN tokens2] AS commonTokens
+		WITH d1, d2, tokens1, tokens2, commonTokens, size(commonTokens) AS commonCount
+		WITH d1, d2, commonTokens, commonCount,
+		     CASE
+		       WHEN (size(tokens1) + size(tokens2) - commonCount) = 0 THEN 0.0
+		       ELSE toFloat(commonCount) / toFloat(size(tokens1) + size(tokens2) - commonCount)
+		     END AS score
+		WHERE commonCount >= $minCommonToken AND score >= $minScore
+		MERGE (d1)-[r:RELATED_BY_KEYWORD]->(d2)
+		SET r.keywords = commonTokens[0..%d],
+		    r.common_count = commonCount,
+		    r.score = score,
+		    r.match_mode = 'content_tokens',
+		    r.updated_at = datetime(),
+		    r.created_at = coalesce(r.created_at, datetime())
+		RETURN count(r) AS relationCount
+	`, documentRelationPreviewKeywords)
+
+	return s.executeRelationBuildQuery(ctx, query, map[string]interface{}{
+		"kbID":           kbID,
+		"minCommonToken": documentRelationMinCommonTokens,
+		"minScore":       documentRelationMinScore,
+	})
+}
+
+func (s *Store) BuildDocumentRelationsForDocument(ctx context.Context, kbID, docID string) (int, error) {
+	deleteQuery := `
+		MATCH (d:Document {id: $docID, kb_id: $kbID})-[r:RELATED_BY_KEYWORD]-(:Document {kb_id: $kbID})
+		DELETE r
+	`
+	if _, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		return tx.Run(ctx, deleteQuery, map[string]interface{}{
+			"kbID":  kbID,
+			"docID": docID,
+		})
+	}); err != nil {
+		return 0, fmt.Errorf("failed to clear old document relations: %w", err)
+	}
+
+	query := fmt.Sprintf(`
+		MATCH (d:Document {id: $docID, kb_id: $kbID})
+		WITH d,
+		     CASE
+		       WHEN size(coalesce(d.tokens, [])) = 0 THEN [word IN split(toLower(d.name), ' ') WHERE size(word) >= 2 | word]
+		       ELSE coalesce(d.tokens, [])
+		     END AS docTokens
+		WHERE size(docTokens) > 0
+		MATCH (other:Document {kb_id: $kbID})
+		WHERE other.id <> d.id
+		WITH d, other, docTokens,
+		     CASE
+		       WHEN size(coalesce(other.tokens, [])) = 0 THEN [word IN split(toLower(other.name), ' ') WHERE size(word) >= 2 | word]
+		       ELSE coalesce(other.tokens, [])
+		     END AS otherTokens
+		WHERE size(otherTokens) > 0
+		WITH d, other, docTokens, otherTokens, [token IN docTokens WHERE token IN otherTokens] AS commonTokens
+		WITH d, other, docTokens, otherTokens, commonTokens, size(commonTokens) AS commonCount
+		WITH d, other, commonTokens, commonCount,
+		     CASE
+		       WHEN (size(docTokens) + size(otherTokens) - commonCount) = 0 THEN 0.0
+		       ELSE toFloat(commonCount) / toFloat(size(docTokens) + size(otherTokens) - commonCount)
+		     END AS score
+		WHERE commonCount >= $minCommonToken AND score >= $minScore
+		WITH
+		    CASE WHEN d.id < other.id THEN d ELSE other END AS leftDoc,
+		    CASE WHEN d.id < other.id THEN other ELSE d END AS rightDoc,
+		    commonTokens, commonCount, score
+		MERGE (leftDoc)-[r:RELATED_BY_KEYWORD]->(rightDoc)
+		SET r.keywords = commonTokens[0..%d],
+		    r.common_count = commonCount,
+		    r.score = score,
+		    r.match_mode = 'content_tokens',
+		    r.updated_at = datetime(),
+		    r.created_at = coalesce(r.created_at, datetime())
+		RETURN count(r) AS relationCount
+	`, documentRelationPreviewKeywords)
+
+	return s.executeRelationBuildQuery(ctx, query, map[string]interface{}{
+		"kbID":           kbID,
+		"docID":          docID,
+		"minCommonToken": documentRelationMinCommonTokens,
+		"minScore":       documentRelationMinScore,
+	})
+}
+
+func (s *Store) executeRelationBuildQuery(ctx context.Context, query string, params map[string]interface{}) (int, error) {
 	result, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		res, err := tx.Run(ctx, query, params)
 		if err != nil {
@@ -390,28 +504,38 @@ func (s *Store) BuildDocumentRelationsByKeyword(ctx context.Context, kbID string
 
 		if res.Next(ctx) {
 			record := res.Record()
-			if count, ok := record.Get("relationCount"); ok {
-				if countVal, ok := count.(int64); ok {
-					return int(countVal), nil
-				}
+			countRaw, ok := record.Get("relationCount")
+			if !ok {
+				return 0, nil
 			}
+			count, ok := countRaw.(int64)
+			if !ok {
+				return 0, nil
+			}
+			return int(count), nil
 		}
 
+		if err := res.Err(); err != nil {
+			return 0, err
+		}
 		return 0, nil
 	})
-
 	if err != nil {
 		return 0, fmt.Errorf("failed to build document relations: %w", err)
 	}
-
 	return result.(int), nil
 }
 
 // GetAllGraph 获取所有图谱数据
 func (s *Store) GetAllGraph(ctx context.Context, kbID string, limit int) (*domain.GraphDataResp, error) {
 	// 查询所有节点
+	nodeFilter := kbNodeFilterClause("n")
+	edgeStartFilter := kbNodeFilterClause("n")
+	edgeEndFilter := kbNodeFilterClause("m")
+
 	nodeQuery := `
 		MATCH (n)
+		WHERE ` + nodeFilter + `
 		RETURN n
 		LIMIT $limit
 	`
@@ -419,11 +543,13 @@ func (s *Store) GetAllGraph(ctx context.Context, kbID string, limit int) (*domai
 	// 查询所有关系
 	edgeQuery := `
 		MATCH (n)-[r]->(m)
+		WHERE ` + edgeStartFilter + ` AND ` + edgeEndFilter + `
 		RETURN n, r, m
 		LIMIT $limit
 	`
 
 	params := map[string]interface{}{
+		"kbID":  kbID,
 		"limit": limit,
 	}
 

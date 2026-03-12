@@ -1,18 +1,21 @@
-// 知识图谱 API 请求
 import httpRequest, { RequestParams } from './httpClient';
 import type {
-  GetNodeGraphRequest,
-  GraphDataResponse,
+  EntityResponse,
   FindPathRequest,
-  PathResponse,
+  GraphDataResponse,
   GraphStatsRequest,
   GraphStatsResponse,
+  GraphSyncRetryResponse,
+  GetNodeGraphRequest,
+  PathResponse,
+  RetryGraphSyncDeadLettersRequest,
   SearchEntitiesRequest,
-  EntityResponse,
 } from '../types/graph';
 
-// 获取所有图谱数据
-export const getAllGraph = (params: { kb_id: string; limit?: number }, options?: RequestParams) => {
+export const getAllGraph = (
+  params: { kb_id: string; limit?: number },
+  options?: RequestParams,
+) => {
   return httpRequest<{ data?: GraphDataResponse }>({
     path: '/api/v1/graph/all',
     method: 'GET',
@@ -23,8 +26,10 @@ export const getAllGraph = (params: { kb_id: string; limit?: number }, options?:
   });
 };
 
-// 获取节点关系图谱
-export const getNodeGraph = (params: GetNodeGraphRequest, options?: RequestParams) => {
+export const getNodeGraph = (
+  params: GetNodeGraphRequest,
+  options?: RequestParams,
+) => {
   return httpRequest<{ data?: GraphDataResponse }>({
     path: '/api/v1/graph/node',
     method: 'GET',
@@ -35,7 +40,6 @@ export const getNodeGraph = (params: GetNodeGraphRequest, options?: RequestParam
   });
 };
 
-// 查找节点间路径
 export const findPaths = (params: FindPathRequest, options?: RequestParams) => {
   return httpRequest<{ data?: PathResponse }>({
     path: '/api/v1/graph/path',
@@ -47,8 +51,10 @@ export const findPaths = (params: FindPathRequest, options?: RequestParams) => {
   });
 };
 
-// 获取图谱统计信息
-export const getGraphStats = (params: GraphStatsRequest, options?: RequestParams) => {
+export const getGraphStats = (
+  params: GraphStatsRequest,
+  options?: RequestParams,
+) => {
   return httpRequest<{ data?: GraphStatsResponse }>({
     path: '/api/v1/graph/stats',
     method: 'GET',
@@ -59,11 +65,27 @@ export const getGraphStats = (params: GraphStatsRequest, options?: RequestParams
   });
 };
 
-// 搜索实体
-export const searchEntities = (params: SearchEntitiesRequest, options?: RequestParams) => {
+export const searchEntities = (
+  params: SearchEntitiesRequest,
+  options?: RequestParams,
+) => {
   return httpRequest<{ data?: EntityResponse[] }>({
     path: '/api/v1/graph/entities/search',
     method: 'GET',
+    query: params,
+    secure: true,
+    format: 'json',
+    ...options,
+  });
+};
+
+export const retryGraphSyncDeadLetters = (
+  params: RetryGraphSyncDeadLettersRequest,
+  options?: RequestParams,
+) => {
+  return httpRequest<{ data?: GraphSyncRetryResponse }>({
+    path: '/api/v1/graph/sync/retry',
+    method: 'POST',
     query: params,
     secure: true,
     format: 'json',

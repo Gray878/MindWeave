@@ -88,7 +88,8 @@ func createApp() (*App, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	graphSyncUseCase := usecase.NewGraphSyncUseCase(store)
+	graphSyncDeadLetterRepository := pg2.NewGraphSyncDeadLetterRepository(db, logger)
+	graphSyncUseCase := usecase.NewGraphSyncUseCase(store, nodeRepository, graphSyncDeadLetterRepository, logger)
 	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase, graphSyncUseCase)
 	cronHandler, err := mq3.NewStatCronHandler(logger, statRepository, statUseCase, nodeUsecase)
 	if err != nil {

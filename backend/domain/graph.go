@@ -7,6 +7,7 @@ import "time"
 type GraphDocument struct {
 	ID         string    `json:"id"`
 	Name       string    `json:"name"`
+	Tokens     []string  `json:"tokens"`
 	KbID       string    `json:"kb_id"`
 	Status     int       `json:"status"`
 	Visibility int       `json:"visibility"`
@@ -28,16 +29,16 @@ type GraphFolder struct {
 
 // GraphEntity 图谱中的实体节点
 type GraphEntity struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Type           string    `json:"type"` // Person, Organization, Technology, Concept, etc.
-	Aliases        []string  `json:"aliases"`
-	Description    string    `json:"description"`
-	Confidence     float64   `json:"confidence"`
-	SourceDocIDs   []string  `json:"source_doc_ids"`
-	KbID           string    `json:"kb_id"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"` // Person, Organization, Technology, Concept, etc.
+	Aliases      []string  `json:"aliases"`
+	Description  string    `json:"description"`
+	Confidence   float64   `json:"confidence"`
+	SourceDocIDs []string  `json:"source_doc_ids"`
+	KbID         string    `json:"kb_id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // GraphUser 图谱中的用户节点
@@ -75,22 +76,22 @@ const (
 
 // RelationType 关系类型枚举
 const (
-	RelationContains    = "CONTAINS"     // 包含关系
-	RelationMentions    = "MENTIONS"     // 提及关系
-	RelationRelatesTo   = "RELATES_TO"   // 实体关联
-	RelationCreatedBy   = "CREATED_BY"   // 创建关系
-	RelationEditedBy    = "EDITED_BY"    // 编辑关系
-	RelationBelongsTo   = "BELONGS_TO"   // 归属关系
-	RelationReferences  = "REFERENCES"   // 引用关系
+	RelationContains   = "CONTAINS"   // 包含关系
+	RelationMentions   = "MENTIONS"   // 提及关系
+	RelationRelatesTo  = "RELATES_TO" // 实体关联
+	RelationCreatedBy  = "CREATED_BY" // 创建关系
+	RelationEditedBy   = "EDITED_BY"  // 编辑关系
+	RelationBelongsTo  = "BELONGS_TO" // 归属关系
+	RelationReferences = "REFERENCES" // 引用关系
 )
 
 // RelationSubType 关系子类型 (用于 RELATES_TO)
 const (
-	RelationDependsOn   = "DEPENDS_ON"
-	RelationSimilarTo   = "SIMILAR_TO"
-	RelationPartOf      = "PART_OF"
-	RelationUses        = "USES"
-	RelationImplements  = "IMPLEMENTS"
-	RelationExtends     = "EXTENDS"
-	RelationRelated     = "RELATED_TO"
+	RelationDependsOn  = "DEPENDS_ON"
+	RelationSimilarTo  = "SIMILAR_TO"
+	RelationPartOf     = "PART_OF"
+	RelationUses       = "USES"
+	RelationImplements = "IMPLEMENTS"
+	RelationExtends    = "EXTENDS"
+	RelationRelated    = "RELATED_TO"
 )

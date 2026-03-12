@@ -26,18 +26,18 @@ import (
 )
 
 type NodeUsecase struct {
-	nodeRepo      *pg.NodeRepository
-	appRepo       *pg.AppRepository
-	ragRepo       *mq.RAGRepository
-	kbRepo        *pg.KnowledgeBaseRepository
-	modelRepo     *pg.ModelRepository
-	userRepo      *pg.UserRepository
-	authRepo      *pg.AuthRepo
-	llmUsecase    *LLMUsecase
-	logger        *log.Logger
-	s3Client      *s3.MinioClient
-	rAGService    rag.RAGService
-	modelUsecase  *ModelUsecase
+	nodeRepo         *pg.NodeRepository
+	appRepo          *pg.AppRepository
+	ragRepo          *mq.RAGRepository
+	kbRepo           *pg.KnowledgeBaseRepository
+	modelRepo        *pg.ModelRepository
+	userRepo         *pg.UserRepository
+	authRepo         *pg.AuthRepo
+	llmUsecase       *LLMUsecase
+	logger           *log.Logger
+	s3Client         *s3.MinioClient
+	rAGService       rag.RAGService
+	modelUsecase     *ModelUsecase
 	graphSyncUseCase *GraphSyncUseCase // 图谱同步服务
 }
 
@@ -95,13 +95,24 @@ func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq, use
 
 			// 根据节点类型同步
 			if node.Type == domain.NodeTypeDocument {
-				if err := u.graphSyncUseCase.SyncDocumentCreate(context.Background(), node, req.KBID, userId); err != nil {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentCreate, nodeID, map[string]any{
+					"kb_id":     req.KBID,
+					"user_id":   userId,
+					"parent_id": node.ParentID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncDocumentCreate(ctx, node, req.KBID, userId)
+				}); err != nil {
 					u.logger.Error("sync document create to graph failed",
 						log.String("node_id", nodeID),
 						log.Error(err))
 				}
 			} else if node.Type == domain.NodeTypeFolder {
-				if err := u.graphSyncUseCase.SyncFolderCreate(context.Background(), node, req.KBID); err != nil {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderCreate, nodeID, map[string]any{
+					"kb_id":     req.KBID,
+					"parent_id": node.ParentID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderCreate(ctx, node, req.KBID)
+				}); err != nil {
 					u.logger.Error("sync folder create to graph failed",
 						log.String("node_id", nodeID),
 						log.Error(err))
@@ -171,6 +182,11 @@ func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string
 func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq) error {
 	switch req.Action {
 	case "delete":
+		allNodeIDs, err := u.nodeRepo.CollectAllChildNodeIDs(ctx, req.KBID, req.IDs)
+		if err != nil {
+			return err
+		}
+
 		docIDs, err := u.nodeRepo.Delete(ctx, req.KBID, req.IDs)
 		if err != nil {
 			return err
@@ -190,15 +206,23 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 		// 异步同步删除到知识图谱
 		if u.graphSyncUseCase != nil {
 			go func() {
-				for _, nodeID := range req.IDs {
+				for _, nodeID := range allNodeIDs {
 					// 尝试删除文档节点
-					if err := u.graphSyncUseCase.SyncDocumentDelete(context.Background(), nodeID); err != nil {
+					if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentDelete, nodeID, map[string]any{
+						"kb_id": req.KBID,
+					}, func(ctx context.Context) error {
+						return u.graphSyncUseCase.SyncDocumentDelete(ctx, nodeID)
+					}); err != nil {
 						u.logger.Error("sync document delete to graph failed",
 							log.String("node_id", nodeID),
 							log.Error(err))
 					}
 					// 尝试删除文件夹节点
-					if err := u.graphSyncUseCase.SyncFolderDelete(context.Background(), nodeID); err != nil {
+					if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderDelete, nodeID, map[string]any{
+						"kb_id": req.KBID,
+					}, func(ctx context.Context) error {
+						return u.graphSyncUseCase.SyncFolderDelete(ctx, nodeID)
+					}); err != nil {
 						u.logger.Error("sync folder delete to graph failed",
 							log.String("node_id", nodeID),
 							log.Error(err))
@@ -230,13 +254,22 @@ func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, use
 
 			// 根据节点类型同步
 			if node.Type == domain.NodeTypeDocument {
-				if err := u.graphSyncUseCase.SyncDocumentUpdate(context.Background(), node, userId); err != nil {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentUpdate, req.ID, map[string]any{
+					"kb_id":   req.KBID,
+					"user_id": userId,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncDocumentUpdate(ctx, node, userId)
+				}); err != nil {
 					u.logger.Error("sync document update to graph failed",
 						log.String("node_id", req.ID),
 						log.Error(err))
 				}
 			} else if node.Type == domain.NodeTypeFolder {
-				if err := u.graphSyncUseCase.SyncFolderUpdate(context.Background(), node); err != nil {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderUpdate, req.ID, map[string]any{
+					"kb_id": req.KBID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderUpdate(ctx, node)
+				}); err != nil {
 					u.logger.Error("sync folder update to graph failed",
 						log.String("node_id", req.ID),
 						log.Error(err))
@@ -353,7 +386,28 @@ func (u *NodeUsecase) MoveNode(ctx context.Context, req *domain.MoveNodeReq) err
 	// 异步同步到知识图谱
 	if u.graphSyncUseCase != nil && oldParentID != req.ParentID {
 		go func() {
-			if err := u.graphSyncUseCase.SyncDocumentMove(context.Background(), req.ID, oldParentID, req.ParentID); err != nil {
+			movePayload := map[string]any{
+				"kb_id":         req.KbID,
+				"old_parent_id": oldParentID,
+				"new_parent_id": req.ParentID,
+			}
+
+			if oldNode.Type == domain.NodeTypeFolder {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderMove, req.ID, movePayload, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderMove(ctx, req.ID, oldParentID, req.ParentID)
+				}); err != nil {
+					u.logger.Error("sync folder move to graph failed",
+						log.String("node_id", req.ID),
+						log.String("old_parent_id", oldParentID),
+						log.String("new_parent_id", req.ParentID),
+						log.Error(err))
+				}
+				return
+			}
+
+			if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentMove, req.ID, movePayload, func(ctx context.Context) error {
+				return u.graphSyncUseCase.SyncDocumentMove(ctx, req.ID, oldParentID, req.ParentID)
+			}); err != nil {
 				u.logger.Error("sync document move to graph failed",
 					log.String("node_id", req.ID),
 					log.String("old_parent_id", oldParentID),

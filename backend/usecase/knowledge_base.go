@@ -19,26 +19,28 @@ import (
 )
 
 type KnowledgeBaseUsecase struct {
-	repo     *pg.KnowledgeBaseRepository
-	nodeRepo *pg.NodeRepository
-	ragRepo  *mq.RAGRepository
-	userRepo *pg.UserRepository
-	rag      rag.RAGService
-	kbCache  *cache.KBRepo
-	logger   *log.Logger
-	config   *config.Config
+	repo             *pg.KnowledgeBaseRepository
+	nodeRepo         *pg.NodeRepository
+	ragRepo          *mq.RAGRepository
+	userRepo         *pg.UserRepository
+	rag              rag.RAGService
+	kbCache          *cache.KBRepo
+	graphSyncUseCase *GraphSyncUseCase
+	logger           *log.Logger
+	config           *config.Config
 }
 
-func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, ragRepo *mq.RAGRepository, userRepo *pg.UserRepository, rag rag.RAGService, kbCache *cache.KBRepo, logger *log.Logger, config *config.Config) (*KnowledgeBaseUsecase, error) {
+func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, ragRepo *mq.RAGRepository, userRepo *pg.UserRepository, rag rag.RAGService, kbCache *cache.KBRepo, graphSyncUseCase *GraphSyncUseCase, logger *log.Logger, config *config.Config) (*KnowledgeBaseUsecase, error) {
 	u := &KnowledgeBaseUsecase{
-		repo:     repo,
-		nodeRepo: nodeRepo,
-		ragRepo:  ragRepo,
-		userRepo: userRepo,
-		rag:      rag,
-		logger:   logger.WithModule("usecase.knowledge_base"),
-		config:   config,
-		kbCache:  kbCache,
+		repo:             repo,
+		nodeRepo:         nodeRepo,
+		ragRepo:          ragRepo,
+		userRepo:         userRepo,
+		rag:              rag,
+		kbCache:          kbCache,
+		graphSyncUseCase: graphSyncUseCase,
+		logger:           logger.WithModule("usecase.knowledge_base"),
+		config:           config,
 	}
 	return u, nil
 }
@@ -66,6 +68,30 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 	if err := u.repo.CreateKnowledgeBase(ctx, req.MaxKB, kb); err != nil {
 		return "", err
 	}
+
+	if u.graphSyncUseCase != nil {
+		go func() {
+			createdAt := kb.CreatedAt
+			if createdAt.IsZero() {
+				createdAt = time.Now()
+			}
+			if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskKBCreate, kb.ID, map[string]any{
+				"name":       kb.Name,
+				"created_at": createdAt.Format(time.RFC3339Nano),
+			}, func(syncCtx context.Context) error {
+				return u.graphSyncUseCase.SyncKnowledgeBaseCreate(syncCtx, &domain.KnowledgeBase{
+					ID:        kb.ID,
+					Name:      kb.Name,
+					CreatedAt: createdAt,
+				})
+			}); err != nil {
+				u.logger.Error("sync knowledge base create to graph failed",
+					log.String("kb_id", kb.ID),
+					log.Error(err))
+			}
+		}()
+	}
+
 	return kbID, nil
 }
 

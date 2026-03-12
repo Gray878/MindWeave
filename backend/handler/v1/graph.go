@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"strconv"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/chaitin/panda-wiki/consts"
@@ -13,23 +15,26 @@ import (
 
 type GraphHandler struct {
 	*handler.BaseHandler
-	logger  *log.Logger
-	usecase *usecase.GraphQueryUseCase
-	auth    middleware.AuthMiddleware
+	logger           *log.Logger
+	usecase          *usecase.GraphQueryUseCase
+	graphSyncUsecase *usecase.GraphSyncUseCase
+	auth             middleware.AuthMiddleware
 }
 
 func NewGraphHandler(
 	baseHandler *handler.BaseHandler,
 	echo *echo.Echo,
 	usecase *usecase.GraphQueryUseCase,
+	graphSyncUsecase *usecase.GraphSyncUseCase,
 	auth middleware.AuthMiddleware,
 	logger *log.Logger,
 ) *GraphHandler {
 	h := &GraphHandler{
-		BaseHandler: baseHandler,
-		logger:      logger.WithModule("handler.v1.graph"),
-		usecase:     usecase,
-		auth:        auth,
+		BaseHandler:      baseHandler,
+		logger:           logger.WithModule("handler.v1.graph"),
+		usecase:          usecase,
+		graphSyncUsecase: graphSyncUsecase,
+		auth:             auth,
 	}
 
 	group := echo.Group("/api/v1/graph", h.auth.Authorize)
@@ -39,6 +44,7 @@ func NewGraphHandler(
 	group.GET("/stats", h.GetGraphStats, h.auth.ValidateKBUserPerm(consts.UserKBPermissionNotNull))
 	group.GET("/entities/search", h.SearchEntities, h.auth.ValidateKBUserPerm(consts.UserKBPermissionNotNull))
 	group.POST("/relations/build", h.BuildRelations, h.auth.ValidateKBUserPerm(consts.UserKBPermissionNotNull))
+	group.POST("/sync/retry", h.RetrySyncDeadLetters, h.auth.ValidateKBUserPerm(consts.UserKBPermissionNotNull))
 
 	return h
 }
@@ -237,4 +243,38 @@ func (h *GraphHandler) GetAllGraph(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, graphData)
+}
+
+func (h *GraphHandler) RetrySyncDeadLetters(c echo.Context) error {
+	if h.graphSyncUsecase == nil {
+		return h.NewResponseWithError(c, "graph sync usecase is not available", nil)
+	}
+
+	req := domain.RetryGraphSyncDeadLettersReq{
+		KbID: c.QueryParam("kb_id"),
+	}
+	if limitRaw := c.QueryParam("limit"); limitRaw != "" {
+		limit, err := strconv.Atoi(limitRaw)
+		if err != nil {
+			return h.NewResponseWithError(c, "limit is invalid", err)
+		}
+		req.Limit = limit
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 100
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	ctx := c.Request().Context()
+	result, err := h.graphSyncUsecase.RetryDeadLetters(ctx, req.KbID, req.Limit)
+	if err != nil {
+		h.logger.Error("failed to retry graph sync dead letters", "error", err)
+		return h.NewResponseWithError(c, "retry graph sync dead letters failed", err)
+	}
+
+	return h.NewResponseWithData(c, result)
 }

@@ -1,4 +1,3 @@
-// 文档节点操作
 package neo4j
 
 import (
@@ -9,12 +8,14 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
-// CreateDocument 创建文档节点
+// CreateDocument creates a document node.
 func (s *Store) CreateDocument(ctx context.Context, doc *domain.GraphDocument) error {
 	query := `
 		CREATE (d:Document {
 			id: $id,
 			name: $name,
+			tokens: $tokens,
+			token_count: $token_count,
 			kb_id: $kb_id,
 			status: $status,
 			visibility: $visibility,
@@ -26,15 +27,17 @@ func (s *Store) CreateDocument(ctx context.Context, doc *domain.GraphDocument) e
 	`
 
 	params := map[string]interface{}{
-		"id":         doc.ID,
-		"name":       doc.Name,
-		"kb_id":      doc.KbID,
-		"status":     doc.Status,
-		"visibility": doc.Visibility,
-		"creator_id": doc.CreatorID,
-		"editor_id":  doc.EditorID,
-		"created_at": doc.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		"updated_at": doc.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		"id":          doc.ID,
+		"name":        doc.Name,
+		"tokens":      doc.Tokens,
+		"token_count": len(doc.Tokens),
+		"kb_id":       doc.KbID,
+		"status":      doc.Status,
+		"visibility":  doc.Visibility,
+		"creator_id":  doc.CreatorID,
+		"editor_id":   doc.EditorID,
+		"created_at":  doc.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		"updated_at":  doc.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	_, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
@@ -44,11 +47,13 @@ func (s *Store) CreateDocument(ctx context.Context, doc *domain.GraphDocument) e
 	return err
 }
 
-// UpdateDocument 更新文档节点
+// UpdateDocument updates a document node.
 func (s *Store) UpdateDocument(ctx context.Context, doc *domain.GraphDocument) error {
 	query := `
 		MATCH (d:Document {id: $id})
 		SET d.name = $name,
+		    d.tokens = $tokens,
+		    d.token_count = $token_count,
 		    d.status = $status,
 		    d.visibility = $visibility,
 		    d.editor_id = $editor_id,
@@ -56,12 +61,14 @@ func (s *Store) UpdateDocument(ctx context.Context, doc *domain.GraphDocument) e
 	`
 
 	params := map[string]interface{}{
-		"id":         doc.ID,
-		"name":       doc.Name,
-		"status":     doc.Status,
-		"visibility": doc.Visibility,
-		"editor_id":  doc.EditorID,
-		"updated_at": doc.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		"id":          doc.ID,
+		"name":        doc.Name,
+		"tokens":      doc.Tokens,
+		"token_count": len(doc.Tokens),
+		"status":      doc.Status,
+		"visibility":  doc.Visibility,
+		"editor_id":   doc.EditorID,
+		"updated_at":  doc.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	_, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
@@ -71,7 +78,7 @@ func (s *Store) UpdateDocument(ctx context.Context, doc *domain.GraphDocument) e
 	return err
 }
 
-// DeleteDocument 删除文档节点及相关关系
+// DeleteDocument deletes a document node and attached relations.
 func (s *Store) DeleteDocument(ctx context.Context, docID string) error {
 	query := `
 		MATCH (d:Document {id: $id})
@@ -89,9 +96,8 @@ func (s *Store) DeleteDocument(ctx context.Context, docID string) error {
 	return err
 }
 
-// CreateDocumentRelations 创建文档相关关系
+// CreateDocumentRelations creates basic document relations.
 func (s *Store) CreateDocumentRelations(ctx context.Context, docID, kbID, creatorID, parentID string) error {
-	// 创建 BELONGS_TO 关系 (Document -> KnowledgeBase)
 	if kbID != "" {
 		query := `
 			MATCH (d:Document {id: $doc_id})
@@ -109,7 +115,6 @@ func (s *Store) CreateDocumentRelations(ctx context.Context, docID, kbID, creato
 		}
 	}
 
-	// 创建 CREATED_BY 关系 (Document -> User)
 	if creatorID != "" {
 		query := `
 			MATCH (d:Document {id: $doc_id})
@@ -127,7 +132,6 @@ func (s *Store) CreateDocumentRelations(ctx context.Context, docID, kbID, creato
 		}
 	}
 
-	// 创建 CONTAINS 关系 (Folder -> Document)
 	if parentID != "" {
 		query := `
 			MATCH (f:Folder {id: $parent_id})
@@ -148,9 +152,8 @@ func (s *Store) CreateDocumentRelations(ctx context.Context, docID, kbID, creato
 	return nil
 }
 
-// UpdateDocumentParent 更新文档的父文件夹关系
+// UpdateDocumentParent updates CONTAINS relation when moving a document.
 func (s *Store) UpdateDocumentParent(ctx context.Context, docID, oldParentID, newParentID string) error {
-	// 删除旧的 CONTAINS 关系
 	if oldParentID != "" {
 		query := `
 			MATCH (f:Folder {id: $old_parent_id})-[r:CONTAINS]->(d:Document {id: $doc_id})
@@ -167,7 +170,6 @@ func (s *Store) UpdateDocumentParent(ctx context.Context, docID, oldParentID, ne
 		}
 	}
 
-	// 创建新的 CONTAINS 关系
 	if newParentID != "" {
 		query := `
 			MATCH (f:Folder {id: $new_parent_id})

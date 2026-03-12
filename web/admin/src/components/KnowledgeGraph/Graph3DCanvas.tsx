@@ -51,6 +51,8 @@ export default function Graph3DCanvas({
   onNodeClick,
   height = '600px',
 }: Graph3DCanvasProps) {
+  const minCanvasHeight =
+    typeof height === 'string' && height.includes('%') ? 0 : 500;
   const fgRef = useRef<any>(null);
   const navigate = useNavigate();
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -328,7 +330,7 @@ export default function Graph3DCanvas({
         position: 'relative',
         width: '100%',
         height,
-        minHeight: '500px',
+        minHeight: minCanvasHeight,
         borderRadius: 2,
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)',

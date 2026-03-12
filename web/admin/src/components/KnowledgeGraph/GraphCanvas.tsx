@@ -65,6 +65,8 @@ export default function GraphCanvas({
   onNodeHover,
   height = '600px',
 }: GraphCanvasProps) {
+  const minCanvasHeight =
+    typeof height === 'string' && height.includes('%') ? 0 : 500;
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,9 +93,9 @@ export default function GraphCanvas({
       height: rect.height,
     });
 
-    if (rect.height === 0) {
+    if (rect.height === 0 && minCanvasHeight > 0) {
       console.warn('Container has no height, setting minimum height');
-      container.style.minHeight = '500px';
+      container.style.minHeight = `${minCanvasHeight}px`;
     }
 
     try {
@@ -211,7 +213,7 @@ export default function GraphCanvas({
         sigmaRef.current = null;
       }
     };
-  }, [graph]);
+  }, [graph, minCanvasHeight]);
 
   useEffect(() => {
     if (sigmaRef.current) sigmaRef.current.refresh();
@@ -280,7 +282,7 @@ export default function GraphCanvas({
         position: 'relative',
         width: '100%',
         height,
-        minHeight: '500px',
+        minHeight: minCanvasHeight,
         borderRadius: 2,
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
@@ -306,7 +308,7 @@ export default function GraphCanvas({
         style={{
           width: '100%',
           height: '100%',
-          minHeight: '500px',
+          minHeight: minCanvasHeight ? `${minCanvasHeight}px` : '0',
           cursor: 'grab',
         }}
       />

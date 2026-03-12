@@ -1,52 +1,42 @@
-// 知识图谱相关类型定义
-
-// 图谱节点
 export interface GraphNode {
   id: string;
   name: string;
-  type: string; // Document, Folder, Entity, User, KnowledgeBase
+  type: string;
   properties: Record<string, any>;
 }
 
-// 图谱边
 export interface GraphEdge {
   source: string;
   target: string;
-  type: string; // CONTAINS, MENTIONS, RELATES_TO, CREATED_BY, EDITED_BY, BELONGS_TO, REFERENCES
+  type: string;
   properties: Record<string, any>;
 }
 
-// 图谱数据响应
 export interface GraphDataResponse {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
 
-// 获取节点图谱请求
 export interface GetNodeGraphRequest {
   node_id: string;
-  depth: number; // 1-3
+  depth: number;
 }
 
-// 查找路径请求
 export interface FindPathRequest {
   start_node_id: string;
   end_node_id: string;
-  max_depth: number; // 1-5
+  max_depth: number;
 }
 
-// 路径响应
 export interface PathResponse {
   paths: GraphNode[][];
   count: number;
 }
 
-// 图谱统计请求
 export interface GraphStatsRequest {
   kb_id: string;
 }
 
-// 图谱统计响应
 export interface GraphStatsResponse {
   total_nodes: number;
   total_edges: number;
@@ -58,7 +48,6 @@ export interface GraphStatsResponse {
   avg_connections: number;
 }
 
-// 搜索实体请求
 export interface SearchEntitiesRequest {
   kb_id: string;
   keyword: string;
@@ -66,7 +55,17 @@ export interface SearchEntitiesRequest {
   limit?: number;
 }
 
-// 实体响应
+export interface RetryGraphSyncDeadLettersRequest {
+  kb_id: string;
+  limit?: number;
+}
+
+export interface GraphSyncRetryResponse {
+  processed: number;
+  resolved: number;
+  failed: number;
+}
+
 export interface EntityResponse {
   id: string;
   name: string;
@@ -77,7 +76,6 @@ export interface EntityResponse {
   doc_count: number;
 }
 
-// Sigma.js 节点属性
 export interface SigmaNodeAttributes {
   x: number;
   y: number;
@@ -87,12 +85,11 @@ export interface SigmaNodeAttributes {
   nodeType: string;
   properties: Record<string, any>;
   hidden: boolean;
-  mass?: number; // ForceAtlas2 质量参数
+  mass?: number;
   zIndex?: number;
   highlighted?: boolean;
 }
 
-// Sigma.js 边属性
 export interface SigmaEdgeAttributes {
   size: number;
   color: string;

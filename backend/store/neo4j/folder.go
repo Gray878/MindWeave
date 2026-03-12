@@ -116,3 +116,55 @@ func (s *Store) CreateFolderRelations(ctx context.Context, folderID, kbID, paren
 
 	return nil
 }
+
+// UpdateFolderParent updates CONTAINS relation when moving a folder.
+func (s *Store) UpdateFolderParent(ctx context.Context, folderID, oldParentID, newParentID string) error {
+	if oldParentID != "" {
+		query := `
+			MATCH (oldParent:Folder {id: $old_parent_id})-[r:CONTAINS]->(f:Folder {id: $folder_id})
+			DELETE r
+		`
+		params := map[string]interface{}{
+			"old_parent_id": oldParentID,
+			"folder_id":     folderID,
+		}
+		if _, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+			return tx.Run(ctx, query, params)
+		}); err != nil {
+			return err
+		}
+	}
+
+	if newParentID != "" {
+		query := `
+			MATCH (newParent:Folder {id: $new_parent_id})
+			MATCH (f:Folder {id: $folder_id})
+			MERGE (newParent)-[:CONTAINS {created_at: datetime()}]->(f)
+		`
+		params := map[string]interface{}{
+			"new_parent_id": newParentID,
+			"folder_id":     folderID,
+		}
+		if _, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+			return tx.Run(ctx, query, params)
+		}); err != nil {
+			return err
+		}
+	}
+
+	updateQuery := `
+		MATCH (f:Folder {id: $folder_id})
+		SET f.parent_id = $new_parent_id
+	`
+	updateParams := map[string]interface{}{
+		"folder_id":     folderID,
+		"new_parent_id": newParentID,
+	}
+	if _, err := s.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		return tx.Run(ctx, updateQuery, updateParams)
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}

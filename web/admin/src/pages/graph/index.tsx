@@ -1,35 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { message } from '@ctzhian/ui';
 import {
-  Box,
-  Typography,
   Alert,
+  Box,
+  Button,
   CircularProgress,
   Paper,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 import {
   AccountTree,
-  Hub,
-  Description,
+  Autorenew,
   Category,
-  ViewInAr,
+  Description,
   GridOn,
+  Hub,
+  ViewInAr,
 } from '@mui/icons-material';
-import { useAppSelector } from '../../store';
+import type Graph from 'graphology';
 import GraphCanvas from '../../components/KnowledgeGraph/GraphCanvas';
 import Graph3DCanvas from '../../components/KnowledgeGraph/Graph3DCanvas';
-import { getGraphStats, getAllGraph } from '../../request/Graph';
 import { neo4jToGraphology } from '../../lib/graph-adapter';
-import type Graph from 'graphology';
+import {
+  getAllGraph,
+  getGraphStats,
+  retryGraphSyncDeadLetters,
+} from '../../request/Graph';
+import { useAppSelector } from '../../store';
 import type {
-  SigmaNodeAttributes,
-  SigmaEdgeAttributes,
   GraphDataResponse,
+  SigmaEdgeAttributes,
+  SigmaNodeAttributes,
 } from '../../types/graph';
 
-const GRAPH_PAGE_HEIGHT = 'calc(100vh - 64px)';
+const GRAPH_PAGE_HEIGHT = 'calc(100vh - 72px)';
+const GRAPH_PAGE_HEIGHT_DVH = 'calc(100dvh - 72px)';
 
 function StatItem({ icon, label, value, color }: any) {
   return (
@@ -55,6 +63,7 @@ export default function GraphOverview() {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+  const [retryingDeadLetters, setRetryingDeadLetters] = useState(false);
   const { kbDetail } = useAppSelector(state => state.config);
 
   const loadGraphData = async () => {
@@ -83,6 +92,32 @@ export default function GraphOverview() {
     if (newMode) setViewMode(newMode);
   };
 
+  const handleRetryDeadLetters = async () => {
+    if (!kbDetail.id || retryingDeadLetters) return;
+    setRetryingDeadLetters(true);
+    try {
+      const result = await retryGraphSyncDeadLetters({
+        kb_id: kbDetail.id,
+        limit: 100,
+      });
+      const processed = result?.processed || 0;
+      const resolved = result?.resolved || 0;
+      const failed = result?.failed || 0;
+      if (processed === 0) {
+        message.info('暂无待重放任务');
+      } else {
+        message.success(
+          `已处理 ${processed} 条，成功 ${resolved} 条，失败 ${failed} 条`,
+        );
+      }
+      await loadGraphData();
+    } catch (err: any) {
+      message.error(err?.message || '重放死信失败');
+    } finally {
+      setRetryingDeadLetters(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -91,6 +126,7 @@ export default function GraphOverview() {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: GRAPH_PAGE_HEIGHT,
+          height: GRAPH_PAGE_HEIGHT_DVH,
         }}
       >
         <CircularProgress />
@@ -114,11 +150,28 @@ export default function GraphOverview() {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: GRAPH_PAGE_HEIGHT,
+          height: GRAPH_PAGE_HEIGHT_DVH,
         }}
       >
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <AccountTree sx={{ fontSize: 64, color: '#9ca3af', mb: 2 }} />
           <Typography variant='h6'>暂无图谱数据</Typography>
+          <Button
+            size='small'
+            variant='outlined'
+            onClick={handleRetryDeadLetters}
+            disabled={retryingDeadLetters || !kbDetail.id}
+            startIcon={
+              retryingDeadLetters ? (
+                <CircularProgress size={14} color='inherit' />
+              ) : (
+                <Autorenew sx={{ fontSize: 16 }} />
+              )
+            }
+            sx={{ mt: 2, minWidth: 110 }}
+          >
+            重放死信
+          </Button>
         </Paper>
       </Box>
     );
@@ -128,7 +181,8 @@ export default function GraphOverview() {
     <Box
       sx={{
         minHeight: GRAPH_PAGE_HEIGHT,
-        height: GRAPH_PAGE_HEIGHT,
+        height: GRAPH_PAGE_HEIGHT_DVH,
+        maxHeight: GRAPH_PAGE_HEIGHT_DVH,
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -141,6 +195,7 @@ export default function GraphOverview() {
           px: 1.25,
           py: 0.75,
           borderRadius: 1.5,
+          flexShrink: 0,
         }}
         elevation={0}
       >
@@ -182,25 +237,52 @@ export default function GraphOverview() {
               color='#8b5cf6'
             />
           </Stack>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            size='small'
-            sx={{ bgcolor: 'background.paper' }}
-          >
-            <ToggleButton value='2d' sx={{ px: 1.5, py: 0.25 }}>
-              <GridOn sx={{ mr: 0.5, fontSize: 16 }} />
-              2D
-            </ToggleButton>
-            <ToggleButton value='3d' sx={{ px: 1.5, py: 0.25 }}>
-              <ViewInAr sx={{ mr: 0.5, fontSize: 16 }} />
-              3D
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <Stack direction='row' spacing={1} alignItems='center'>
+            <Button
+              size='small'
+              variant='outlined'
+              onClick={handleRetryDeadLetters}
+              disabled={retryingDeadLetters || !kbDetail.id}
+              startIcon={
+                retryingDeadLetters ? (
+                  <CircularProgress size={14} color='inherit' />
+                ) : (
+                  <Autorenew sx={{ fontSize: 16 }} />
+                )
+              }
+              sx={{ minWidth: 110 }}
+            >
+              重放死信
+            </Button>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              size='small'
+              sx={{ bgcolor: 'background.paper' }}
+            >
+              <ToggleButton value='2d' sx={{ px: 1.5, py: 0.25 }}>
+                <GridOn sx={{ mr: 0.5, fontSize: 16 }} />
+                2D
+              </ToggleButton>
+              <ToggleButton value='3d' sx={{ px: 1.5, py: 0.25 }}>
+                <ViewInAr sx={{ mr: 0.5, fontSize: 16 }} />
+                3D
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
         </Stack>
       </Paper>
-      <Box sx={{ flex: 1, mx: 2, mt: 0, mb: 1.5, minHeight: 0 }}>
+      <Box
+        sx={{
+          flex: 1,
+          mx: 2,
+          mt: 0,
+          mb: 1.5,
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
+      >
         {viewMode === '2d' && graph && (
           <GraphCanvas graph={graph} height='100%' />
         )}

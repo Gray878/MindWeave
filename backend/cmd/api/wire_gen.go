@@ -74,15 +74,23 @@ func createApp() (*App, func(), error) {
 	ragRepository := mq2.NewRAGRepository(mqProducer)
 	userRepository := pg2.NewUserRepository(db, logger)
 	kbRepo := cache2.NewKBRepo(cacheCache)
-	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig)
+	store, cleanup, err := neo4j.ProvideNeo4jStore(configConfig, logger)
 	if err != nil {
+		return nil, nil, err
+	}
+	graphSyncDeadLetterRepository := pg2.NewGraphSyncDeadLetterRepository(db, logger)
+	graphSyncUseCase := usecase.NewGraphSyncUseCase(store, nodeRepository, graphSyncDeadLetterRepository, logger)
+	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, graphSyncUseCase, logger, configConfig)
+	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	shareAuthMiddleware := middleware.NewShareAuthMiddleware(logger, knowledgeBaseUsecase)
 	captchaCaptcha := captcha.NewCaptcha()
 	baseHandler := handler.NewBaseHandler(echo, logger, configConfig, authMiddleware, shareAuthMiddleware, captchaCaptcha)
-	userUsecase, err := usecase.NewUserUsecase(userRepository, logger, configConfig)
+	userUsecase, err := usecase.NewUserUsecase(userRepository, graphSyncUseCase, logger, configConfig)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	userHandler := v1.NewUserHandler(echo, baseHandler, logger, userUsecase, authMiddleware, configConfig, cacheCache)
@@ -94,16 +102,12 @@ func createApp() (*App, func(), error) {
 	appRepository := pg2.NewAppRepository(db, logger)
 	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
 	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
 	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
-	store, cleanup, err := neo4j.ProvideNeo4jStore(configConfig, logger)
-	if err != nil {
-		return nil, nil, err
-	}
-	graphSyncUseCase := usecase.NewGraphSyncUseCase(store)
 	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase, graphSyncUseCase)
 	nodeHandler := v1.NewNodeHandler(baseHandler, echo, nodeUsecase, authMiddleware, logger)
 	geoRepo := cache2.NewGeoCache(cacheCache, db, logger)
@@ -152,7 +156,7 @@ func createApp() (*App, func(), error) {
 	}
 	authV1Handler := v1.NewAuthV1Handler(echo, baseHandler, logger, authUsecase)
 	graphQueryUseCase := usecase.NewGraphQueryUseCase(store)
-	graphHandler := v1.NewGraphHandler(baseHandler, echo, graphQueryUseCase, authMiddleware, logger)
+	graphHandler := v1.NewGraphHandler(baseHandler, echo, graphQueryUseCase, graphSyncUseCase, authMiddleware, logger)
 	apiHandlers := &v1.APIHandlers{
 		UserHandler:          userHandler,
 		KnowledgeBaseHandler: knowledgeBaseHandler,
