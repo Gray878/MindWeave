@@ -22,6 +22,50 @@ const SPHERE_RADIUS = 300;
 const DOUBLE_CLICK_DELAY = 250;
 const GRAPH_CENTER = { x: 0, y: 0, z: 0 };
 const VIEWPORT_LEFT_SHIFT = 120;
+const LINK_ARROW_REL_POS = 0.88;
+
+const LINK_STYLE_MAP = {
+  RELATED_BY_KEYWORD: {
+    color: '#38bdf8',
+    width: 1.02,
+    curvature: 0.08,
+    particles: 1,
+    arrowLength: 0,
+    particleSpeed: 0.0048,
+  },
+  MENTIONS: {
+    color: '#f59e0b',
+    width: 0.94,
+    curvature: 0.12,
+    particles: 1,
+    arrowLength: 3.6,
+    particleSpeed: 0.006,
+  },
+  REFERENCES: {
+    color: '#a78bfa',
+    width: 0.98,
+    curvature: 0.18,
+    particles: 2,
+    arrowLength: 4.4,
+    particleSpeed: 0.008,
+  },
+  CONTAINS: {
+    color: '#22c55e',
+    width: 1.18,
+    curvature: 0.04,
+    particles: 0,
+    arrowLength: 3.1,
+    particleSpeed: 0,
+  },
+  DEFAULT: {
+    color: '#60a5fa',
+    width: 0.82,
+    curvature: 0.1,
+    particles: 0,
+    arrowLength: 0,
+    particleSpeed: 0,
+  },
+} as const;
 
 type Graph3DNode = GraphNode & {
   color: string;
@@ -38,7 +82,19 @@ type Graph3DLink = {
   source: string;
   target: string;
   type: string;
+  color: string;
+  baseWidth: number;
+  curvature: number;
+  particles: number;
+  arrowLength: number;
+  particleSpeed: number;
 };
+
+const getLinkEndpointId = (endpoint: string | Graph3DNode) =>
+  typeof endpoint === 'string' ? endpoint : endpoint.id;
+
+const getLinkStyle = (type: string) =>
+  LINK_STYLE_MAP[type as keyof typeof LINK_STYLE_MAP] ?? LINK_STYLE_MAP.DEFAULT;
 
 interface Graph3DCanvasProps {
   data: GraphDataResponse;
@@ -75,13 +131,42 @@ export default function Graph3DCanvas({
         color: getNodeColor(node.type),
         val: node.type === 'Document' ? 12 : node.type === 'Entity' ? 6 : 4,
       })),
-      links: data.edges.map(edge => ({
-        source: edge.source,
-        target: edge.target,
-        type: edge.type,
-      })),
+      links: data.edges.map((edge, index) => {
+        const style = getLinkStyle(edge.type);
+        const curveOffset = ((index % 5) - 2) * 0.018;
+
+        return {
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          color: style.color,
+          baseWidth: style.width,
+          curvature: Math.max(0, style.curvature + curveOffset),
+          particles: style.particles,
+          arrowLength: style.arrowLength,
+          particleSpeed: style.particleSpeed,
+        };
+      }),
     }),
     [data],
+  );
+
+  const getLinkState = useCallback(
+    (link: Graph3DLink | any) => {
+      const sourceId = getLinkEndpointId(link.source);
+      const targetId = getLinkEndpointId(link.target);
+      const touchesSelected =
+        !!selectedNode &&
+        (sourceId === selectedNode || targetId === selectedNode);
+      const touchesHovered =
+        !!hoveredNode && (sourceId === hoveredNode || targetId === hoveredNode);
+
+      return {
+        touchesSelected,
+        touchesHovered,
+      };
+    },
+    [hoveredNode, selectedNode],
   );
 
   useEffect(() => {
@@ -404,19 +489,55 @@ export default function Graph3DCanvas({
             return sprite;
           }}
           linkColor={(link: any) => {
-            const colors: Record<string, string> = {
-              RELATED_BY_KEYWORD: '#00bcd4',
-              MENTIONS: '#f59e0b',
-              REFERENCES: '#8b5cf6',
-              CONTAINS: '#10b981',
-            };
-            return colors[link.type] || '#64b5f6';
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return link.color;
+            if (touchesHovered) return '#dbeafe';
+            return link.color;
           }}
-          linkWidth={2.5}
-          linkOpacity={0.8}
-          linkDirectionalParticles={2}
-          linkDirectionalParticleWidth={2}
-          linkDirectionalParticleSpeed={0.006}
+          linkWidth={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return link.baseWidth * 2.1;
+            if (touchesHovered) return link.baseWidth * 1.45;
+            return link.baseWidth;
+          }}
+          linkOpacity={0.54}
+          linkCurvature={(link: any) => link.curvature}
+          linkDirectionalArrowLength={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return Math.max(5.2, link.arrowLength * 1.2);
+            if (touchesHovered) return Math.max(4, link.arrowLength);
+            return link.arrowLength;
+          }}
+          linkDirectionalArrowRelPos={LINK_ARROW_REL_POS}
+          linkDirectionalArrowColor={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return link.color;
+            if (touchesHovered) return '#dbeafe';
+            return link.color;
+          }}
+          linkDirectionalParticles={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return Math.max(3, link.particles + 2);
+            if (touchesHovered) return Math.max(1, link.particles);
+            return link.particles;
+          }}
+          linkDirectionalParticleWidth={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return 3.1;
+            if (touchesHovered) return 2.1;
+            return 1.5;
+          }}
+          linkDirectionalParticleColor={(link: any) => {
+            const { touchesHovered, touchesSelected } = getLinkState(link);
+            if (touchesSelected) return link.color;
+            if (touchesHovered) return '#dbeafe';
+            return link.color;
+          }}
+          linkDirectionalParticleSpeed={(link: any) => {
+            const { touchesSelected } = getLinkState(link);
+            if (touchesSelected) return Math.max(0.0085, link.particleSpeed);
+            return link.particleSpeed;
+          }}
           onNodeClick={handleNodeClick}
           onNodeHover={handleNodeHover}
           onBackgroundClick={handleBackgroundClick}
