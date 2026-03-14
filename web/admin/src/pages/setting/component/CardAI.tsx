@@ -86,7 +86,6 @@ const CardAI = ({ kb }: CardAIProps) => {
       <SettingCardItem title='智能问答' isEdit={isEdit} onSubmit={onSubmit}>
         <FormItem
           vertical
-          permission={PROFESSION_VERSION_PERMISSION}
           extra={
             <Box
               sx={{
@@ -186,7 +185,6 @@ const CardAI = ({ kb }: CardAIProps) => {
         </FormItem>
         <FormItem
           vertical
-          permission={PROFESSION_VERSION_PERMISSION}
           extra={
             <Box
               sx={{

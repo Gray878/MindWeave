@@ -24,9 +24,19 @@ type BaseEditionLimitation struct {
 }
 
 var baseEditionLimitationDefault = BaseEditionLimitation{
-	MaxKb:    1,
-	MaxAdmin: 1,
-	MaxNode:  300,
+	MaxKb:                  999,   // 移除知识库数量限制
+	MaxAdmin:               999,   // 移除管理员数量限制
+	MaxNode:                99999, // 移除文档数量限制
+	MaxSSOUser:             99999, // 移除 SSO 用户数量限制
+	AllowAdminPerm:         true,  // 开放管理员分权控制
+	AllowCustomCopyright:   true,  // 开放自定义版权信息
+	AllowCommentAudit:      true,  // 开放评论审核
+	AllowAdvancedBot:       true,  // 开放高级机器人配置
+	AllowWatermark:         true,  // 开放水印功能
+	AllowCopyProtection:    true,  // 开放内容复制保护
+	AllowOpenAIBotSettings: true,  // 开放问答机器人
+	AllowMCPServer:         true,  // 开放 MCP Server
+	AllowNodeStats:         true,  // 开放文档统计
 }
 
 func GetBaseEditionLimitation(c context.Context) BaseEditionLimitation {

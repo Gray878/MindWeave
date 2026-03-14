@@ -265,40 +265,38 @@ const CardRobotWecomService = ({
             <IconJinggao sx={{ fontSize: 18 }} />
             人工客服转接配置：当用户触发以下场景时，会自动转接人工客服
           </Stack>
-          <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
-            <FormItem
-              label={
-                <Box>
-                  提问
-                  <Box component={'span'} sx={{ fontWeight: 600 }}>
-                    包含特定
-                  </Box>
-                  关键词
+          <FormItem
+            label={
+              <Box>
+                提问
+                <Box component={'span'} sx={{ fontWeight: 600 }}>
+                  包含特定
                 </Box>
-              }
-            >
-              <FreeSoloAutocomplete
-                placeholder='回车确认，填写下一个'
-                {...containKeywordsField}
-              />
-            </FormItem>
-            <FormItem
-              label={
-                <Box>
-                  提问
-                  <Box component={'span'} sx={{ fontWeight: 600 }}>
-                    完全匹配
-                  </Box>
-                  关键词
+                关键词
+              </Box>
+            }
+          >
+            <FreeSoloAutocomplete
+              placeholder='回车确认，填写下一个'
+              {...containKeywordsField}
+            />
+          </FormItem>
+          <FormItem
+            label={
+              <Box>
+                提问
+                <Box component={'span'} sx={{ fontWeight: 600 }}>
+                  完全匹配
                 </Box>
-              }
-            >
-              <FreeSoloAutocomplete
-                placeholder='回车确认，填写下一个'
-                {...equalKeywordsField}
-              />
-            </FormItem>
-          </VersionMask>
+                关键词
+              </Box>
+            }
+          >
+            <FreeSoloAutocomplete
+              placeholder='回车确认，填写下一个'
+              {...equalKeywordsField}
+            />
+          </FormItem>
         </>
       )}
     </SettingCardItem>

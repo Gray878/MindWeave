@@ -102,7 +102,7 @@ func (h *AppHandler) UpdateApp(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := h.usecase.ValidateUpdateApp(ctx, id, &appRequest); err != nil {
 		h.logger.Error("UpdateApp", log.Any("req:", appRequest.Settings), log.Any("err:", err))
-		return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
+		return h.NewResponseWithError(c, "validate update app failed", err)
 	}
 
 	if err := h.usecase.UpdateApp(ctx, id, &appRequest); err != nil {

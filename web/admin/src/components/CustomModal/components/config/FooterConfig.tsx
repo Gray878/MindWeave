@@ -9,8 +9,6 @@ import { setAppPreviewData } from '@/store/slices/config';
 import { DomainSocialMediaAccount } from '@/request/types';
 import Switch from '../basicComponents/Switch';
 import DragSocialInfo from '../basicComponents/DragSocialInfo';
-import VersionMask from '@/components/VersionMask';
-import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import { IconTianjia } from '@panda-wiki/icons';
 import {
   IconWeixingongzhonghao,
@@ -533,40 +531,34 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
           >
             MindWeave 版权信息
           </Box>
-          <VersionMask
-            permission={PROFESSION_VERSION_PERMISSION}
-            wrapperSx={{ px: 2 }}
-            sx={{ inset: '-8px 0' }}
-          >
-            <Controller
-              control={control}
-              name='show_brand_info'
-              render={({ field }) => (
-                <Stack direction={'row'}>
-                  <Box
-                    sx={{
-                      fontSize: 12,
-                      lineHeight: '20px',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    展示 MindWeave 版权信息
-                  </Box>
-                  <Switch
-                    sx={{ marginLeft: 'auto' }}
-                    {...field}
-                    checked={field?.value === false ? false : true}
-                    onChange={e => {
-                      field.onChange(e.target.checked);
-                      setIsEdit(true);
-                    }}
-                  ></Switch>
-                </Stack>
-              )}
-            />
-          </VersionMask>
+          <Controller
+            control={control}
+            name='show_brand_info'
+            render={({ field }) => (
+              <Stack direction={'row'} sx={{ px: 2 }}>
+                <Box
+                  sx={{
+                    fontSize: 12,
+                    lineHeight: '20px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  展示 MindWeave 版权信息
+                </Box>
+                <Switch
+                  sx={{ marginLeft: 'auto' }}
+                  {...field}
+                  checked={field?.value === false ? false : true}
+                  onChange={e => {
+                    field.onChange(e.target.checked);
+                    setIsEdit(true);
+                  }}
+                ></Switch>
+              </Stack>
+            )}
+          />
         </Stack>
       </Stack>
     </>

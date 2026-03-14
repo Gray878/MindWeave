@@ -311,168 +311,164 @@ const CardRobotWecom = ({
             />
           </FormItem>
 
-          <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
-            <FormItem label='问答返回类型'>
-              <Controller
-                control={control}
-                name='text_response_enable'
-                render={({ field }) => (
-                  <RadioGroup
-                    row
-                    {...field}
-                    onChange={e => {
-                      field.onChange(e.target.value === 'true');
-                      setIsEdit(true);
-                    }}
-                  >
-                    <FormControlLabel
-                      value={false}
-                      control={<Radio size='small' />}
-                      label={<Box sx={{ width: 100 }}>卡片</Box>}
-                    />
-                    <FormControlLabel
-                      value={true}
-                      control={<Radio size='small' />}
-                      label={<Box sx={{ width: 100 }}>文本</Box>}
-                    />
-                  </RadioGroup>
-                )}
-              />
-            </FormItem>
-            <FormItem label='智能问答提示词' sx={{ alignItems: 'flex-start' }}>
-              <Controller
-                control={control}
-                name='prompt'
-                render={({ field }) => (
-                  <Box sx={{ position: 'relative', flex: 1 }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 12,
-                        left: 12,
-                        fontSize: 12,
-                        color: 'primary.main',
-                        display: 'block',
-                        cursor: 'pointer',
-                        zIndex: 1,
-                      }}
-                      onClick={onResetPrompt}
-                    >
-                      重置为默认提示词
-                    </Box>
-                    <TextField
-                      {...field}
-                      fullWidth
-                      multiline
-                      minRows={6}
-                      maxRows={20}
-                      slotProps={{
-                        input: {
-                          sx: { pt: '36px' },
-                        },
-                      }}
-                      placeholder='智能问答提示词'
-                      onChange={e => {
-                        field.onChange(e.target.value);
-                        setIsEdit(true);
-                      }}
-                    />
-                  </Box>
-                )}
-              />
-            </FormItem>
-            <FormItem label='AI 问答评价'>
-              <Controller
-                control={control}
-                name='feedback_type'
-                render={({ field }) => (
-                  <Autocomplete
-                    {...field}
-                    multiple
-                    freeSolo
-                    fullWidth
-                    options={AI_FEEDBACK_OPTIONS}
-                    inputValue={inputValue}
-                    onInputChange={(_, newInputValue) =>
-                      setInputValue(newInputValue)
-                    }
-                    onChange={(_, newValue) => {
-                      setIsEdit(true);
-                      const newValues = [...new Set(newValue as string[])];
-                      field.onChange(newValues);
-                    }}
-                    renderValue={(value, getTagProps) => {
-                      return value.map((option, index: number) => {
-                        return (
-                          <Chip
-                            variant='outlined'
-                            size='small'
-                            label={
-                              <Box sx={{ fontSize: '12px' }}>{option}</Box>
-                            }
-                            {...getTagProps({ index })}
-                            key={index}
-                          />
-                        );
-                      });
-                    }}
-                    renderInput={params => (
-                      <TextField
-                        {...params}
-                        placeholder='选择或输入评价，可多选，回车确认'
-                        variant='outlined'
-                      />
-                    )}
+          <FormItem label='问答返回类型'>
+            <Controller
+              control={control}
+              name='text_response_enable'
+              render={({ field }) => (
+                <RadioGroup
+                  row
+                  {...field}
+                  onChange={e => {
+                    field.onChange(e.target.value === 'true');
+                    setIsEdit(true);
+                  }}
+                >
+                  <FormControlLabel
+                    value={false}
+                    control={<Radio size='small' />}
+                    label={<Box sx={{ width: 100 }}>卡片</Box>}
                   />
-                )}
-              />
-            </FormItem>
-            <FormItem label='评价开关'>
-              <Controller
-                control={control}
-                name='feedback_enable'
-                render={({ field }) => (
-                  <RadioGroup
-                    row
-                    {...field}
-                    onChange={e => {
-                      setIsEdit(true);
-                      field.onChange(e.target.value === 'true');
+                  <FormControlLabel
+                    value={true}
+                    control={<Radio size='small' />}
+                    label={<Box sx={{ width: 100 }}>文本</Box>}
+                  />
+                </RadioGroup>
+              )}
+            />
+          </FormItem>
+          <FormItem label='智能问答提示词' sx={{ alignItems: 'flex-start' }}>
+            <Controller
+              control={control}
+              name='prompt'
+              render={({ field }) => (
+                <Box sx={{ position: 'relative', flex: 1 }}>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 12,
+                      fontSize: 12,
+                      color: 'primary.main',
+                      display: 'block',
+                      cursor: 'pointer',
+                      zIndex: 1,
                     }}
+                    onClick={onResetPrompt}
                   >
-                    <FormControlLabel
-                      value={true}
-                      control={<Radio size='small' />}
-                      label={<Box sx={{ width: 100 }}>启用</Box>}
-                    />
-                    <FormControlLabel
-                      value={false}
-                      control={<Radio size='small' />}
-                      label={<Box sx={{ width: 100 }}>禁用</Box>}
-                    />
-                  </RadioGroup>
-                )}
-              />
-            </FormItem>
-            <FormItem label='免责声明'>
-              <Controller
-                control={control}
-                name='disclaimer_content'
-                render={({ field }) => (
+                    重置为默认提示词
+                  </Box>
                   <TextField
                     {...field}
                     fullWidth
-                    value={field.value || ''}
-                    placeholder='请输入免责声明'
-                    onChange={e => {
-                      setIsEdit(true);
-                      field.onChange(e.target.value);
+                    multiline
+                    minRows={6}
+                    maxRows={20}
+                    slotProps={{
+                      input: {
+                        sx: { pt: '36px' },
+                      },
                     }}
-                  ></TextField>
-                )}
-              />
-            </FormItem>
-          </VersionMask>
+                    placeholder='智能问答提示词'
+                    onChange={e => {
+                      field.onChange(e.target.value);
+                      setIsEdit(true);
+                    }}
+                  />
+                </Box>
+              )}
+            />
+          </FormItem>
+          <FormItem label='AI 问答评价'>
+            <Controller
+              control={control}
+              name='feedback_type'
+              render={({ field }) => (
+                <Autocomplete
+                  {...field}
+                  multiple
+                  freeSolo
+                  fullWidth
+                  options={AI_FEEDBACK_OPTIONS}
+                  inputValue={inputValue}
+                  onInputChange={(_, newInputValue) =>
+                    setInputValue(newInputValue)
+                  }
+                  onChange={(_, newValue) => {
+                    setIsEdit(true);
+                    const newValues = [...new Set(newValue as string[])];
+                    field.onChange(newValues);
+                  }}
+                  renderValue={(value, getTagProps) => {
+                    return value.map((option, index: number) => {
+                      return (
+                        <Chip
+                          variant='outlined'
+                          size='small'
+                          label={<Box sx={{ fontSize: '12px' }}>{option}</Box>}
+                          {...getTagProps({ index })}
+                          key={index}
+                        />
+                      );
+                    });
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder='选择或输入评价，可多选，回车确认'
+                      variant='outlined'
+                    />
+                  )}
+                />
+              )}
+            />
+          </FormItem>
+          <FormItem label='评价开关'>
+            <Controller
+              control={control}
+              name='feedback_enable'
+              render={({ field }) => (
+                <RadioGroup
+                  row
+                  {...field}
+                  onChange={e => {
+                    setIsEdit(true);
+                    field.onChange(e.target.value === 'true');
+                  }}
+                >
+                  <FormControlLabel
+                    value={true}
+                    control={<Radio size='small' />}
+                    label={<Box sx={{ width: 100 }}>启用</Box>}
+                  />
+                  <FormControlLabel
+                    value={false}
+                    control={<Radio size='small' />}
+                    label={<Box sx={{ width: 100 }}>禁用</Box>}
+                  />
+                </RadioGroup>
+              )}
+            />
+          </FormItem>
+          <FormItem label='免责声明'>
+            <Controller
+              control={control}
+              name='disclaimer_content'
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  value={field.value || ''}
+                  placeholder='请输入免责声明'
+                  onChange={e => {
+                    setIsEdit(true);
+                    field.onChange(e.target.value);
+                  }}
+                ></TextField>
+              )}
+            />
+          </FormItem>
         </>
       )}
     </SettingCardItem>
