@@ -10,3 +10,8 @@ declare module 'swiper/css/pagination' {
   const content: string;
   export default content;
 }
+
+declare module 'three' {
+  const content: any;
+  export = content;
+}

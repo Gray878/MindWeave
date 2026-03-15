@@ -7,7 +7,13 @@ import type {
   SigmaNodeAttributes,
   SigmaEdgeAttributes,
 } from '../types/graph';
-import { getNodeColor, getNodeSize, getEdgeColor } from '../constant/graph';
+import {
+  getNodeColor,
+  getNodeSize,
+  getEdgeColor,
+  getEdgeSize,
+  getEdgeCurvature,
+} from '../constant/graph';
 
 /**
  * 获取节点质量 - 用于 ForceAtlas2 布局
@@ -61,9 +67,11 @@ function applyForceAtlas2Layout(
   // 应用 noverlap 防止节点重叠
   noverlap.assign(graph, {
     maxIterations: 20,
-    ratio: 1.1,
-    margin: 10,
-    expansion: 1.05,
+    settings: {
+      ratio: 1.1,
+      margin: 10,
+      expansion: 1.05,
+    },
   });
 }
 
@@ -84,7 +92,7 @@ export const neo4jToGraphology = (
   // 添加节点 - 使用黄金角度螺旋分布
   data.nodes.forEach((node, index) => {
     const nodeType = node.type || 'Unknown';
-    const color = getNodeColor(nodeType);
+    const color = getNodeColor(nodeType, node.id);
     const size = getNodeSize(nodeType);
 
     // 黄金角度螺旋分布
@@ -111,18 +119,17 @@ export const neo4jToGraphology = (
   });
 
   // 添加边 - 使用曲线样式
-  const edgeBaseSize = nodeCount > 200 ? 0.6 : 1.0;
-  data.edges.forEach(edge => {
+  data.edges.forEach((edge, index) => {
     if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
       const edgeId = `${edge.source}-${edge.target}`;
       if (!graph.hasEdge(edgeId)) {
         try {
           graph.addEdge(edge.source, edge.target, {
-            size: edgeBaseSize,
+            size: getEdgeSize(edge.type, nodeCount),
             color: getEdgeColor(edge.type),
             relationType: edge.type,
             type: 'curved',
-            curvature: 0.15 + Math.random() * 0.1,
+            curvature: getEdgeCurvature(edge.type, index),
           });
         } catch (err) {
           console.error(`Failed to add edge ${edgeId}:`, err);

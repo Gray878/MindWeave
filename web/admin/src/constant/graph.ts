@@ -1,27 +1,33 @@
-// 知识图谱常量配置
+const hashSeed = (value: string): number => {
+  let hash = 0;
 
-// 节点类型颜色配置
-export const NODE_COLORS: Record<string, string> = {
-  // 实体类型
-  Person: '#3b82f6', // 蓝色 - 人物
-  Organization: '#8b5cf6', // 紫色 - 组织
-  Location: '#10b981', // 绿色 - 地点
-  Event: '#f59e0b', // 橙色 - 事件
-  Concept: '#ec4899', // 粉色 - 概念
-  Technology: '#06b6d4', // 青色 - 技术
-  Product: '#f97316', // 橙红 - 产品
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
 
-  // 文档类型
-  Document: '#6366f1', // 靛蓝 - 文档
-  Folder: '#10b981', // 绿色 - 文件夹
-
-  // 其他
-  User: '#8b5cf6', // 紫色 - 用户
-  KnowledgeBase: '#f59e0b', // 橙色 - 知识库
-  Unknown: '#9ca3af', // 灰色 - 未知
+  return Math.abs(hash);
 };
 
-// 节点大小配置
+const NODE_SWATCHES: Record<string, string[]> = {
+  Person: ['#7dd3fc', '#38bdf8', '#93c5fd'],
+  Organization: ['#c084fc', '#8b5cf6', '#a78bfa'],
+  Location: ['#34d399', '#2dd4bf', '#22c55e'],
+  Event: ['#fb7185', '#f97316', '#f59e0b'],
+  Concept: ['#f472b6', '#fb7185', '#f59e0b'],
+  Technology: ['#22d3ee', '#06b6d4', '#38bdf8'],
+  Product: ['#f97316', '#fb7185', '#f59e0b'],
+  Document: ['#38bdf8', '#60a5fa', '#818cf8', '#22d3ee'],
+  Folder: ['#34d399', '#22c55e', '#14b8a6'],
+  User: ['#a78bfa', '#c084fc', '#8b5cf6'],
+  KnowledgeBase: ['#facc15', '#f59e0b', '#fb923c'],
+  Unknown: ['#94a3b8', '#64748b', '#60a5fa'],
+};
+
+export const NODE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(NODE_SWATCHES).map(([type, swatches]) => [type, swatches[0]]),
+);
+
 export const NODE_SIZES: Record<string, number> = {
   Person: 12,
   Organization: 14,
@@ -30,38 +36,70 @@ export const NODE_SIZES: Record<string, number> = {
   Concept: 10,
   Technology: 11,
   Product: 10,
-  Document: 9,
+  Document: 9.5,
   Folder: 11,
   User: 10,
   KnowledgeBase: 15,
   Unknown: 8,
 };
 
-// 边颜色配置
 export const EDGE_COLORS: Record<string, string> = {
-  // 关系类型
-  CONTAINS: '#10b981', // 包含
-  MENTIONS: '#9ca3af', // 提及
-  RELATES_TO: '#6366f1', // 关联
-  CREATED_BY: '#3b82f6', // 创建
-  EDITED_BY: '#06b6d4', // 编辑
-  BELONGS_TO: '#8b5cf6', // 归属
-  REFERENCES: '#f59e0b', // 引用
-
-  // 实体关系子类型
-  DEPENDS_ON: '#3b82f6',
-  SIMILAR_TO: '#ec4899',
-  PART_OF: '#10b981',
-  USES: '#06b6d4',
-  IMPLEMENTS: '#8b5cf6',
-  EXTENDS: '#f59e0b',
-  RELATED_TO: '#6366f1',
-
-  // 默认
-  DEFAULT: '#4a4a5a',
+  CONTAINS: '#34d399',
+  MENTIONS: '#7dd3fc',
+  RELATES_TO: '#818cf8',
+  CREATED_BY: '#38bdf8',
+  EDITED_BY: '#22d3ee',
+  BELONGS_TO: '#c084fc',
+  REFERENCES: '#f59e0b',
+  RELATED_BY_KEYWORD: '#facc15',
+  DEPENDS_ON: '#38bdf8',
+  SIMILAR_TO: '#f472b6',
+  PART_OF: '#34d399',
+  USES: '#22d3ee',
+  IMPLEMENTS: '#a78bfa',
+  EXTENDS: '#fb923c',
+  RELATED_TO: '#60a5fa',
+  DEFAULT: '#475569',
 };
 
-// 实体类型中文名称
+const EDGE_SIZES: Record<string, number> = {
+  CONTAINS: 1.75,
+  MENTIONS: 1.1,
+  RELATES_TO: 1.35,
+  CREATED_BY: 1.2,
+  EDITED_BY: 1.2,
+  BELONGS_TO: 1.28,
+  REFERENCES: 1.45,
+  RELATED_BY_KEYWORD: 1.26,
+  DEPENDS_ON: 1.22,
+  SIMILAR_TO: 1.32,
+  PART_OF: 1.52,
+  USES: 1.18,
+  IMPLEMENTS: 1.24,
+  EXTENDS: 1.28,
+  RELATED_TO: 1.22,
+  DEFAULT: 1.1,
+};
+
+const EDGE_CURVATURES: Record<string, number> = {
+  CONTAINS: 0.06,
+  MENTIONS: 0.18,
+  RELATES_TO: 0.14,
+  CREATED_BY: 0.12,
+  EDITED_BY: 0.12,
+  BELONGS_TO: 0.16,
+  REFERENCES: 0.22,
+  RELATED_BY_KEYWORD: 0.2,
+  DEPENDS_ON: 0.14,
+  SIMILAR_TO: 0.24,
+  PART_OF: 0.08,
+  USES: 0.16,
+  IMPLEMENTS: 0.14,
+  EXTENDS: 0.16,
+  RELATED_TO: 0.14,
+  DEFAULT: 0.12,
+};
+
 export const ENTITY_TYPE_LABELS: Record<string, string> = {
   Person: '人物',
   Organization: '组织',
@@ -77,7 +115,6 @@ export const ENTITY_TYPE_LABELS: Record<string, string> = {
   Unknown: '未知',
 };
 
-// 关系类型中文名称
 export const RELATION_TYPE_LABELS: Record<string, string> = {
   CONTAINS: '包含',
   MENTIONS: '提及',
@@ -86,6 +123,7 @@ export const RELATION_TYPE_LABELS: Record<string, string> = {
   EDITED_BY: '编辑',
   BELONGS_TO: '归属',
   REFERENCES: '引用',
+  RELATED_BY_KEYWORD: '关键词相关',
   DEPENDS_ON: '依赖',
   SIMILAR_TO: '相似',
   PART_OF: '属于',
@@ -95,27 +133,42 @@ export const RELATION_TYPE_LABELS: Record<string, string> = {
   RELATED_TO: '相关',
 };
 
-// 获取节点颜色
-export const getNodeColor = (nodeType: string): string => {
-  return NODE_COLORS[nodeType] || NODE_COLORS.Unknown;
+export const getNodeColor = (nodeType: string, seed = ''): string => {
+  const swatches = NODE_SWATCHES[nodeType] || NODE_SWATCHES.Unknown;
+  if (!seed) {
+    return swatches[0];
+  }
+
+  return swatches[hashSeed(`${nodeType}:${seed}`) % swatches.length];
 };
 
-// 获取节点大小
-export const getNodeSize = (nodeType: string): number => {
-  return NODE_SIZES[nodeType] || NODE_SIZES.Unknown;
+export const getNodeSize = (nodeType: string): number =>
+  NODE_SIZES[nodeType] || NODE_SIZES.Unknown;
+
+export const getEdgeColor = (relationType: string): string =>
+  EDGE_COLORS[relationType] || EDGE_COLORS.DEFAULT;
+
+export const getEdgeSize = (
+  relationType: string,
+  nodeCount: number,
+): number => {
+  const base = EDGE_SIZES[relationType] || EDGE_SIZES.DEFAULT;
+  const densityScale = nodeCount > 240 ? 0.76 : nodeCount > 120 ? 0.88 : 1;
+  return Number((base * densityScale).toFixed(2));
 };
 
-// 获取边颜色
-export const getEdgeColor = (relationType: string): string => {
-  return EDGE_COLORS[relationType] || EDGE_COLORS.DEFAULT;
+export const getEdgeCurvature = (
+  relationType: string,
+  edgeIndex = 0,
+): number => {
+  const base = EDGE_CURVATURES[relationType] || EDGE_CURVATURES.DEFAULT;
+  const direction = edgeIndex % 2 === 0 ? 1 : -1;
+  const variation = (edgeIndex % 4) * 0.02;
+  return Number(((base + variation) * direction).toFixed(3));
 };
 
-// 获取实体类型标签
-export const getEntityTypeLabel = (type: string): string => {
-  return ENTITY_TYPE_LABELS[type] || type;
-};
+export const getEntityTypeLabel = (type: string): string =>
+  ENTITY_TYPE_LABELS[type] || type;
 
-// 获取关系类型标签
-export const getRelationTypeLabel = (type: string): string => {
-  return RELATION_TYPE_LABELS[type] || type;
-};
+export const getRelationTypeLabel = (type: string): string =>
+  RELATION_TYPE_LABELS[type] || type;

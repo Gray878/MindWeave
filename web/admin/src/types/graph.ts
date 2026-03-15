@@ -81,6 +81,8 @@ export interface SigmaNodeAttributes {
   y: number;
   size: number;
   color: string;
+  beaconColor?: string;
+  beaconState?: 'idle' | 'neighbor' | 'hovered' | 'selected';
   label: string;
   nodeType: string;
   properties: Record<string, any>;
