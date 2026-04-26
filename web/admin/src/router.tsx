@@ -10,6 +10,9 @@ import {
   lazy,
 } from 'react';
 import { JSX } from 'react/jsx-runtime';
+import { Navigate } from 'react-router-dom';
+import { useAppSelector } from '@/store';
+import { ConstsUserKBPermission } from '@/request/types';
 
 const LoaderWrapper = styled('div')({
   position: 'fixed',
@@ -34,6 +37,22 @@ const LazyLoadable = (
     </Suspense>
   ));
 
+const HomeRedirect = () => {
+  const { kbDetail } = useAppSelector(state => state.config);
+  const perm = kbDetail.perm;
+
+  if (!perm) {
+    return <Loader />;
+  }
+
+  const to =
+    perm === ConstsUserKBPermission.UserKBPermissionDocManage
+      ? '/document'
+      : '/stat';
+
+  return <Navigate to={to} replace />;
+};
+
 const router = [
   {
     path: '/',
@@ -41,6 +60,10 @@ const router = [
     children: [
       {
         path: '',
+        element: <HomeRedirect />,
+      },
+      {
+        path: '/document',
         element: createElement(
           LazyLoadable(lazy(() => import('./pages/document'))),
         ),

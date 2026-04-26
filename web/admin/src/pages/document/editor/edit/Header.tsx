@@ -163,7 +163,7 @@ const Header = ({
       navigate(`/doc/editor/${nextDoc.id}`);
     } else {
       // 没有其他文档，回到首页
-      navigate('/');
+      navigate('/document');
     }
   };
 

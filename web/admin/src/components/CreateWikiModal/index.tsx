@@ -50,7 +50,7 @@ const CreateWikiModal = () => {
   const onCancel = () => {
     dispatch(setKbC(false));
     setOpen(false);
-    if (location.pathname === '/') {
+    if (location.pathname === '/document') {
       dispatch(setIsRefreshDocList(true));
     }
   };

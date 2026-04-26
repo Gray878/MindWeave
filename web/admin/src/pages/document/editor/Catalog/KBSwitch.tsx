@@ -44,7 +44,7 @@ const KBSwitch = () => {
           height: 36,
         }}
         onClick={() => {
-          navigate('/');
+          navigate('/document');
         }}
       >
         <IconZuzhi type='icon-zuzhi' sx={{ color: 'text.primary' }} />

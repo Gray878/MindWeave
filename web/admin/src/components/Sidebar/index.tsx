@@ -28,18 +28,7 @@ type MenuItem = {
 
 const MENUS: MenuItem[] = [
   {
-    label: '文档',
-    value: '/',
-    pathname: 'document',
-    icon: IconNeirongguanli,
-    show: true,
-    perms: [
-      ConstsUserKBPermission.UserKBPermissionFullControl,
-      ConstsUserKBPermission.UserKBPermissionDocManage,
-    ],
-  },
-  {
-    label: '统计',
+    label: '\u7edf\u8ba1',
     value: '/stat',
     pathname: 'stat',
     icon: IconTongjifenxi1,
@@ -50,7 +39,18 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '图谱',
+    label: '\u6587\u6863',
+    value: '/document',
+    pathname: 'document',
+    icon: IconNeirongguanli,
+    show: true,
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionDocManage,
+    ],
+  },
+  {
+    label: '\u56fe\u8c31',
     value: '/graph',
     pathname: 'graph',
     icon: AccountTreeIcon,
@@ -61,7 +61,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '问答',
+    label: '\u95ee\u7b54',
     value: '/conversation',
     pathname: 'conversation',
     icon: IconDuihualishi1,
@@ -72,7 +72,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '反馈',
+    label: '\u53cd\u9988',
     value: '/feedback',
     pathname: 'feedback',
     icon: IconJushou,
@@ -83,7 +83,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '发布',
+    label: '\u53d1\u5e03',
     value: '/release',
     pathname: 'release',
     icon: IconPaperFull,
@@ -94,7 +94,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '配置',
+    label: '\u914d\u7f6e',
     value: '/system',
     pathname: 'system',
     icon: IconAChilunshezhisheding,
@@ -103,7 +103,7 @@ const MENUS: MenuItem[] = [
     perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
   },
   {
-    label: '设置',
+    label: '\u8bbe\u7f6e',
     value: '/setting',
     pathname: 'application-setting',
     icon: IconChilun,
@@ -127,12 +127,9 @@ const Sidebar = () => {
   }, [kbDetail, user.role]);
 
   useEffect(() => {
-    const menu = menus.find(it => {
-      if (it.value === '/') {
-        return pathname === '/';
-      }
-      return pathname.startsWith(it.value);
-    });
+    const menu = menus.find(
+      it => pathname === it.value || pathname.startsWith(`${it.value}/`),
+    );
 
     if (!menu && menus.length > 0 && pathname !== '/system') {
       navigate(menus[0].value);
@@ -184,7 +181,7 @@ const Sidebar = () => {
       <Stack sx={{ py: 1, flexGrow: 1 }} gap={0.5}>
         {menus.map(it => {
           const isActive =
-            it.value === '/' ? pathname === '/' : pathname.startsWith(it.value);
+            pathname === it.value || pathname.startsWith(`${it.value}/`);
 
           if (!it.show) return null;
           const IconMenu = it.icon;

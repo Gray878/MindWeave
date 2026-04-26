@@ -5,16 +5,16 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import KBSelect from '../KB/KBSelect';
 
-const HomeBread = { title: '文档', to: '/' };
+const HomeBread = { title: '\u7edf\u8ba1', to: '/stat' };
 const OtherBread = {
-  document: { title: '文档', to: '/' },
-  stat: { title: '统计', to: '/stat' },
-  conversation: { title: '问答', to: '/conversation' },
-  feedback: { title: '反馈', to: '/feedback' },
-  setting: { title: '设置', to: '/setting' },
-  system: { title: '配置', to: '/system' },
-  release: { title: '发布', to: '/release' },
-  contribution: { title: '贡献', to: '/contribution' },
+  document: { title: '\u6587\u6863', to: '/document' },
+  stat: { title: '\u7edf\u8ba1', to: '/stat' },
+  conversation: { title: '\u95ee\u7b54', to: '/conversation' },
+  feedback: { title: '\u53cd\u9988', to: '/feedback' },
+  setting: { title: '\u8bbe\u7f6e', to: '/setting' },
+  system: { title: '\u914d\u7f6e', to: '/system' },
+  release: { title: '\u53d1\u5e03', to: '/release' },
+  contribution: { title: '\u8d21\u732e', to: '/contribution' },
 };
 
 const Bread = () => {
