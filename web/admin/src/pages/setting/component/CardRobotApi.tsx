@@ -3,7 +3,6 @@ import {
   Box,
   FormControl,
   FormControlLabel,
-  Link,
   Radio,
   RadioGroup,
   Stack,
@@ -86,29 +85,7 @@ const CardRobotApi = ({
   });
 
   return (
-    <SettingCardItem
-      title='问答机器人 API'
-      isEdit={isEdit}
-      more={
-        <Link
-          component='a'
-          href='https://pandawiki.docs.baizhi.cloud/node/01971b60-100e-7b23-9385-e36763df5c0a'
-          target='_blank'
-          sx={{
-            fontSize: 14,
-            ml: 1,
-            textDecoration: 'none',
-            fontWeight: 'normal',
-            '&:hover': {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          使用方法
-        </Link>
-      }
-      onSubmit={onSubmit}
-    >
+    <SettingCardItem title='问答机器人 API' isEdit={isEdit} onSubmit={onSubmit}>
       <FormItem label='问答机器人 API'>
         <FormControl>
           <Controller
