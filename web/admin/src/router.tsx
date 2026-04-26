@@ -76,8 +76,18 @@ const router = [
       },
       {
         path: '/system',
+        element: <Navigate to='/model-config' replace />,
+      },
+      {
+        path: '/model-config',
         element: createElement(
-          LazyLoadable(lazy(() => import('./pages/system'))),
+          LazyLoadable(lazy(() => import('./pages/model-config'))),
+        ),
+      },
+      {
+        path: '/user-management',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/user-management'))),
         ),
       },
       {

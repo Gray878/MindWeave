@@ -14,6 +14,7 @@ import {
   IconChilun,
 } from '@panda-wiki/icons';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import { ElementType, useEffect, useMemo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
@@ -32,7 +33,7 @@ export const SIDEBAR_LAYOUT_OFFSET = SIDEBAR_WIDTH + 32;
 
 const MENUS: MenuItem[] = [
   {
-    label: '\u7edf\u8ba1',
+    label: '\u6570\u636e\u7edf\u8ba1',
     value: '/stat',
     pathname: 'stat',
     icon: IconTongjifenxi1,
@@ -43,7 +44,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u6587\u6863',
+    label: '\u6587\u6863\u7ba1\u7406',
     value: '/document',
     pathname: 'document',
     icon: IconNeirongguanli,
@@ -54,7 +55,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u56fe\u8c31',
+    label: '\u77e5\u8bc6\u56fe\u8c31',
     value: '/graph',
     pathname: 'graph',
     icon: AccountTreeIcon,
@@ -65,7 +66,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u95ee\u7b54',
+    label: '\u667a\u80fd\u95ee\u7b54',
     value: '/conversation',
     pathname: 'conversation',
     icon: IconDuihualishi1,
@@ -76,7 +77,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u53cd\u9988',
+    label: '\u7528\u6237\u53cd\u9988',
     value: '/feedback',
     pathname: 'feedback',
     icon: IconJushou,
@@ -87,7 +88,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u53d1\u5e03',
+    label: '\u5185\u5bb9\u53d1\u5e03',
     value: '/release',
     pathname: 'release',
     icon: IconPaperFull,
@@ -98,16 +99,25 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u914d\u7f6e',
-    value: '/system',
-    pathname: 'system',
+    label: '\u6a21\u578b\u914d\u7f6e',
+    value: '/model-config',
+    pathname: 'model-config',
     icon: IconAChilunshezhisheding,
     show: true,
     adminOnly: true,
     perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
   },
   {
-    label: '\u8bbe\u7f6e',
+    label: '\u7528\u6237\u7ba1\u7406',
+    value: '/user-management',
+    pathname: 'user-management',
+    icon: ManageAccountsOutlinedIcon,
+    show: true,
+    adminOnly: true,
+    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+  },
+  {
+    label: '\u5e94\u7528\u8bbe\u7f6e',
     value: '/setting',
     pathname: 'application-setting',
     icon: IconChilun,

@@ -5,16 +5,24 @@ import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import KBSelect from '../KB/KBSelect';
 
-const HomeBread = { title: '\u7edf\u8ba1', to: '/stat' };
+const HomeBread = { title: '\u6570\u636e\u7edf\u8ba1', to: '/stat' };
 const OtherBread = {
-  document: { title: '\u6587\u6863', to: '/document' },
-  stat: { title: '\u7edf\u8ba1', to: '/stat' },
-  conversation: { title: '\u95ee\u7b54', to: '/conversation' },
-  feedback: { title: '\u53cd\u9988', to: '/feedback' },
-  setting: { title: '\u8bbe\u7f6e', to: '/setting' },
-  system: { title: '\u914d\u7f6e', to: '/system' },
-  release: { title: '\u53d1\u5e03', to: '/release' },
-  contribution: { title: '\u8d21\u732e', to: '/contribution' },
+  document: { title: '\u6587\u6863\u7ba1\u7406', to: '/document' },
+  stat: { title: '\u6570\u636e\u7edf\u8ba1', to: '/stat' },
+  conversation: { title: '\u667a\u80fd\u95ee\u7b54', to: '/conversation' },
+  feedback: { title: '\u7528\u6237\u53cd\u9988', to: '/feedback' },
+  'model-config': {
+    title: '\u6a21\u578b\u914d\u7f6e',
+    to: '/model-config',
+  },
+  'user-management': {
+    title: '\u7528\u6237\u7ba1\u7406',
+    to: '/user-management',
+  },
+  setting: { title: '\u5e94\u7528\u8bbe\u7f6e', to: '/setting' },
+  system: { title: '\u7cfb\u7edf\u914d\u7f6e', to: '/system' },
+  release: { title: '\u5185\u5bb9\u53d1\u5e03', to: '/release' },
+  contribution: { title: '\u5185\u5bb9\u8d21\u732e', to: '/contribution' },
 };
 
 const Bread = () => {
