@@ -4,7 +4,6 @@ import { useAppSelector } from '@/store';
 import { Box, Button, Stack, useTheme } from '@mui/material';
 import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import {
-  IconBangzhuwendang1,
   IconAChilunshezhisheding,
   IconNeirongguanli,
   IconTongjifenxi1,
@@ -149,34 +148,40 @@ const Sidebar = () => {
         p: 2,
         height: 'calc(100vh - 32px)',
         bgcolor: '#FFFFFF',
-        borderRadius: '10px',
+        borderRadius: '12px',
         position: 'fixed',
         top: 0,
         left: 0,
         overflow: 'auto',
+        border: '1px solid',
+        borderColor: 'divider',
       }}
     >
       <Stack
         direction={'row'}
         alignItems={'center'}
         justifyContent={'center'}
-        sx={{ flexShrink: 0 }}
+        sx={{
+          flexShrink: 0,
+          mb: 2,
+          pb: 2,
+          borderBottom: `2px solid ${theme.palette.divider}`,
+        }}
       >
-        <Avatar src={Logo} sx={{ width: 30, height: 30 }} />
+        <Avatar src={Logo} sx={{ width: 32, height: 32 }} />
       </Stack>
       <Box
         sx={{
           fontSize: '16px',
-          fontWeight: 'bold',
+          fontWeight: 600,
           color: 'text.primary',
           textAlign: 'center',
-          lineHeight: '36px',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          mb: 1,
         }}
       >
         MindWeave
       </Box>
-      <Stack sx={{ py: 2, flexGrow: 1 }} gap={1}>
+      <Stack sx={{ py: 1, flexGrow: 1 }} gap={0.5}>
         {menus.map(it => {
           const isActive =
             it.value === '/' ? pathname === '/' : pathname.startsWith(it.value);
@@ -188,34 +193,34 @@ const Sidebar = () => {
               key={it.pathname}
               to={it.value}
               style={{
-                zIndex: isActive ? 2 : 1,
+                textDecoration: 'none',
               }}
             >
               <Button
-                variant={isActive ? 'contained' : 'text'}
-                color='dark'
+                variant='text'
                 sx={{
                   width: '100%',
-                  height: 50,
-                  px: 2,
+                  height: 44,
+                  px: 1.5,
                   justifyContent: 'flex-start',
-                  color: isActive ? '#FFFFFF' : 'text.primary',
-                  fontWeight: isActive ? '500' : '400',
-                  boxShadow: isActive
-                    ? '0px 10px 25px 0px rgba(33,34,45,0.2)'
-                    : 'none',
+                  color: isActive ? 'primary.main' : 'text.secondary',
+                  fontWeight: isActive ? '600' : '400',
+                  bgcolor: isActive ? 'primary.lighter' : 'transparent',
+                  borderLeft: isActive ? '3px solid' : '3px solid transparent',
+                  borderLeftColor: isActive ? 'primary.main' : 'transparent',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s ease',
                   ':hover': {
-                    boxShadow: isActive
-                      ? '0px 10px 25px 0px rgba(33,34,45,0.2)'
-                      : 'none',
+                    bgcolor: isActive ? 'primary.lighter' : 'action.hover',
+                    color: isActive ? 'primary.main' : 'text.primary',
                   },
                 }}
               >
                 <IconMenu
                   sx={{
-                    fontSize: 14,
+                    fontSize: 16,
                     mr: 1,
-                    color: isActive ? '#FFFFFF' : 'text.disabled',
+                    color: isActive ? 'primary.main' : 'text.disabled',
                   }}
                 />
                 {it.label}
@@ -223,36 +228,6 @@ const Sidebar = () => {
             </NavLink>
           );
         })}
-      </Stack>
-      <Stack gap={1} sx={{ flexShrink: 0 }}>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={
-            <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />
-          }
-          onClick={() =>
-            window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')
-          }
-        >
-          帮助文档
-        </Button>
       </Stack>
     </Stack>
   );
