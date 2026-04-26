@@ -1,13 +1,11 @@
 import Logo from '@/assets/images/logo.png';
-
-import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
-import { ConstsUserKBPermission } from '@/request/types';
-import { useState, useMemo, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Avatar from '../Avatar';
 import { useAppSelector } from '@/store';
+import { Box, Button, Stack, useTheme } from '@mui/material';
+import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import {
   IconBangzhuwendang1,
+  IconAChilunshezhisheding,
   IconNeirongguanli,
   IconTongjifenxi1,
   IconJushou,
@@ -16,8 +14,20 @@ import {
   IconChilun,
 } from '@panda-wiki/icons';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import { ElementType, useEffect, useMemo } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
-const MENUS = [
+type MenuItem = {
+  label: string;
+  value: string;
+  pathname: string;
+  icon: ElementType;
+  show: boolean;
+  perms: ConstsUserKBPermission[];
+  adminOnly?: boolean;
+};
+
+const MENUS: MenuItem[] = [
   {
     label: '文档',
     value: '/',
@@ -85,6 +95,15 @@ const MENUS = [
     ],
   },
   {
+    label: '配置',
+    value: '/system',
+    pathname: 'system',
+    icon: IconAChilunshezhisheding,
+    show: true,
+    adminOnly: true,
+    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+  },
+  {
     label: '设置',
     value: '/setting',
     pathname: 'application-setting',
@@ -96,14 +115,17 @@ const MENUS = [
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  const { kbDetail } = useAppSelector(state => state.config);
+  const { kbDetail, user } = useAppSelector(state => state.config);
   const theme = useTheme();
   const navigate = useNavigate();
   const menus = useMemo(() => {
     return MENUS.filter(it => {
-      return it.perms.includes(kbDetail.perm!);
+      const hasPermission = it.perms.includes(kbDetail.perm!);
+      const hasRoleAccess =
+        !it.adminOnly || user.role === ConstsUserRole.UserRoleAdmin;
+      return hasPermission && hasRoleAccess;
     });
-  }, [kbDetail]);
+  }, [kbDetail, user.role]);
 
   useEffect(() => {
     const menu = menus.find(it => {
@@ -113,10 +135,10 @@ const Sidebar = () => {
       return pathname.startsWith(it.value);
     });
 
-    if (!menu && menus.length > 0) {
+    if (!menu && menus.length > 0 && pathname !== '/system') {
       navigate(menus[0].value);
     }
-  }, [pathname, menus]);
+  }, [pathname, menus, navigate]);
 
   return (
     <Stack
@@ -156,12 +178,9 @@ const Sidebar = () => {
       </Box>
       <Stack sx={{ py: 2, flexGrow: 1 }} gap={1}>
         {menus.map(it => {
-          let isActive = false;
-          if (it.value === '/') {
-            isActive = pathname === '/';
-          } else {
-            isActive = pathname.includes(it.value);
-          }
+          const isActive =
+            it.value === '/' ? pathname === '/' : pathname.startsWith(it.value);
+
           if (!it.show) return null;
           const IconMenu = it.icon;
           return (
