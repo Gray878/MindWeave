@@ -2,6 +2,7 @@ import Logo from '@/assets/images/logo.png';
 import Avatar from '../Avatar';
 import { useAppSelector } from '@/store';
 import { Box, Button, Stack, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import {
   IconAChilunshezhisheding,
@@ -25,6 +26,9 @@ type MenuItem = {
   perms: ConstsUserKBPermission[];
   adminOnly?: boolean;
 };
+
+export const SIDEBAR_WIDTH = 176;
+export const SIDEBAR_LAYOUT_OFFSET = SIDEBAR_WIDTH + 32;
 
 const MENUS: MenuItem[] = [
   {
@@ -139,46 +143,58 @@ const Sidebar = () => {
   return (
     <Stack
       sx={{
-        width: 138,
+        width: SIDEBAR_WIDTH,
         m: 2,
         zIndex: 999,
-        p: 2,
+        p: 1.75,
         height: 'calc(100vh - 32px)',
         bgcolor: '#FFFFFF',
-        borderRadius: '12px',
+        borderRadius: '20px',
         position: 'fixed',
         top: 0,
         left: 0,
         overflow: 'auto',
-        border: '1px solid',
-        borderColor: 'divider',
+        border: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
+        boxShadow: '0px 20px 40px rgba(18, 24, 40, 0.04)',
       }}
     >
       <Stack
-        direction={'row'}
-        alignItems={'center'}
-        justifyContent={'center'}
+        direction='row'
+        alignItems='center'
+        gap={1.25}
         sx={{
           flexShrink: 0,
           mb: 2,
           pb: 2,
-          borderBottom: `2px solid ${theme.palette.divider}`,
+          borderBottom: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
         }}
       >
-        <Avatar src={Logo} sx={{ width: 32, height: 32 }} />
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: '14px',
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'background.paper3',
+            border: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
+            flexShrink: 0,
+          }}
+        >
+          <Avatar src={Logo} sx={{ width: 24, height: 24 }} />
+        </Box>
+        <Box
+          sx={{
+            fontSize: '17px',
+            fontWeight: 700,
+            color: 'text.primary',
+            letterSpacing: '0.01em',
+          }}
+        >
+          MindWeave
+        </Box>
       </Stack>
-      <Box
-        sx={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: 'text.primary',
-          textAlign: 'center',
-          mb: 1,
-        }}
-      >
-        MindWeave
-      </Box>
-      <Stack sx={{ py: 1, flexGrow: 1 }} gap={0.5}>
+      <Stack sx={{ py: 0.5, flexGrow: 1 }} gap={0.75}>
         {menus.map(it => {
           const isActive =
             pathname === it.value || pathname.startsWith(`${it.value}/`);
@@ -194,33 +210,85 @@ const Sidebar = () => {
               }}
             >
               <Button
+                disableRipple
                 variant='text'
                 sx={{
                   width: '100%',
-                  height: 44,
-                  px: 1.5,
+                  minHeight: 48,
+                  px: 1.25,
+                  py: 0.75,
                   justifyContent: 'flex-start',
-                  color: isActive ? 'primary.main' : 'text.secondary',
-                  fontWeight: isActive ? '600' : '400',
-                  bgcolor: isActive ? 'primary.lighter' : 'transparent',
-                  borderLeft: isActive ? '3px solid' : '3px solid transparent',
-                  borderLeftColor: isActive ? 'primary.main' : 'transparent',
-                  borderRadius: '8px',
-                  transition: 'all 0.2s ease',
+                  gap: 1.25,
+                  position: 'relative',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  fontWeight: isActive ? 600 : 500,
+                  bgcolor: isActive
+                    ? alpha(theme.palette.primary.main, 0.06)
+                    : 'transparent',
+                  border: `1px solid ${
+                    isActive
+                      ? alpha(theme.palette.primary.main, 0.12)
+                      : 'transparent'
+                  }`,
+                  borderRadius: '14px',
+                  transition:
+                    'transform 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 8,
+                    top: 14,
+                    bottom: 14,
+                    width: 3,
+                    borderRadius: '999px',
+                    bgcolor: isActive ? 'primary.main' : 'transparent',
+                    transition: 'background-color 180ms ease',
+                  },
                   ':hover': {
-                    bgcolor: isActive ? 'primary.lighter' : 'action.hover',
-                    color: isActive ? 'primary.main' : 'text.primary',
+                    bgcolor: isActive
+                      ? alpha(theme.palette.primary.main, 0.08)
+                      : alpha(theme.palette.common.black, 0.03),
+                    borderColor: isActive
+                      ? alpha(theme.palette.primary.main, 0.16)
+                      : alpha(theme.palette.common.black, 0.08),
+                    color: 'text.primary',
+                    transform: 'translateX(2px)',
                   },
                 }}
               >
-                <IconMenu
+                <Box
                   sx={{
-                    fontSize: 16,
-                    mr: 1,
-                    color: isActive ? 'primary.main' : 'text.disabled',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '10px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: isActive ? '#FFFFFF' : 'background.paper3',
+                    border: `1px solid ${
+                      isActive
+                        ? alpha(theme.palette.primary.main, 0.12)
+                        : alpha(theme.palette.common.black, 0.06)
+                    }`,
+                    transition:
+                      'background-color 180ms ease, border-color 180ms ease, transform 180ms ease',
                   }}
-                />
-                {it.label}
+                >
+                  <IconMenu
+                    sx={{
+                      fontSize: 16,
+                      color: isActive ? 'primary.main' : 'text.disabled',
+                      transition: 'color 180ms ease, transform 180ms ease',
+                    }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    lineHeight: 1.2,
+                    textAlign: 'left',
+                  }}
+                >
+                  {it.label}
+                </Box>
               </Button>
             </NavLink>
           );
