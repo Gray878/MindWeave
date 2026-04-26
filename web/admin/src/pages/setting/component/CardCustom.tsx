@@ -1,4 +1,4 @@
-import documentPng from '@/assets/images/document.png';
+import documentPng from '@/assets/images/wide.png';
 import welcomePng from '@/assets/images/welcome.png';
 import CustomModal from '@/components/CustomModal';
 import { putApiV1App } from '@/request/App';
