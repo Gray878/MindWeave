@@ -47,13 +47,13 @@ const ConfigKB = () => {
         <Box
           sx={{ fontSize: 14, lineHeight: '36px', height: '36px', width: 150 }}
         >
-          Wiki 站名称
+          知识库名称
         </Box>
         {editName ? (
           <TextField
             sx={{ width: 300 }}
             size='small'
-            placeholder='Wiki 站名称'
+            placeholder='知识库名称'
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}

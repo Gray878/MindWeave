@@ -80,7 +80,7 @@ export const IconMap = {
 
 export const AppType = {
   1: {
-    label: 'Wiki 网站',
+    label: '知识库站点',
     icon: IconAWebyingyong,
   },
   2: {

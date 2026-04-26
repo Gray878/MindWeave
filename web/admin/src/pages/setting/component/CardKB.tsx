@@ -453,7 +453,7 @@ const CardKB = () => {
       }}
     >
       <SettingCardItem
-        title='Wiki 站管理员'
+        title='知识库管理员'
         extra={
           <Button
             size='small'
@@ -461,7 +461,7 @@ const CardKB = () => {
             onClick={() => setAddOpen(true)}
             sx={{ color: 'primary.main' }}
           >
-            添加 Wiki 站管理员
+            添加知识库管理员
           </Button>
         }
       >

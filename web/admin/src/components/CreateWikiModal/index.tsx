@@ -58,7 +58,7 @@ const CreateWikiModal = () => {
   const onPublish = () => {
     return postApiV1KnowledgeBaseRelease({
       kb_id,
-      message: '创建 Wiki 站点',
+      message: '创建知识库站点',
       tag: `${dayjs().format('YYYYMMDD')}-${Math.random().toString(36).substring(2, 8)}`,
       node_ids: nodeIds,
     });
@@ -172,7 +172,7 @@ const CreateWikiModal = () => {
     <Modal
       open={open}
       onCancel={onCancel}
-      title='创建 Wiki 站点'
+      title='创建知识库站点'
       width={880}
       closable={activeStep === 1 && (kbList || []).length > 0}
       showCancel={false}

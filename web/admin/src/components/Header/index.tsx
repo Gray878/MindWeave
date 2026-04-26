@@ -100,7 +100,7 @@ const Header = () => {
             },
           }}
         >
-          {'\u8bbf\u95ee Wiki'}
+          {'\u8bbf\u95ee\u77e5\u8bc6\u5e93'}
         </Button>
         <Tooltip arrow title={'\u9000\u51fa\u767b\u5f55'}>
           <IconButton
