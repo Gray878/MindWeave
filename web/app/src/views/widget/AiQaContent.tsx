@@ -12,6 +12,7 @@ import {
 import { IconCopy } from '@/components/icons';
 import MarkDown2 from '@/components/markdown2';
 import { useSmartScroll } from '@/hooks';
+import { BrandName } from '@/constant';
 import { useStore } from '@/provider';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { getShareV1ConversationDetail } from '@/request/ShareConversation';
@@ -708,7 +709,7 @@ const AiQaContent: React.FC<{
               variant='h6'
               sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
             >
-              {kbDetail?.settings?.title}
+              {BrandName}
             </Typography>
           </Box>
 

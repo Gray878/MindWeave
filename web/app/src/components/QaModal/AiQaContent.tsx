@@ -13,6 +13,7 @@ import { message, Image as ImagePreview } from '@ctzhian/ui';
 import Feedback from '@/components/feedback';
 import { handleThinkingContent } from './utils';
 import { useSmartScroll } from '@/hooks';
+import { BrandName } from '@/constant';
 import { useTheme } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import { useBasePath } from '@/hooks';
@@ -131,11 +132,21 @@ const LoadingContent = ({
   );
 };
 
-const AiQaContent: React.FC<{
+interface AiQaContentProps {
   hotSearch: string[];
   placeholder: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
-}> = ({ hotSearch, placeholder, inputRef }) => {
+  onConversationStateChange?: (hasConversation: boolean) => void;
+  isInline?: boolean;
+}
+
+const AiQaContent: React.FC<AiQaContentProps> = ({
+  hotSearch,
+  placeholder,
+  inputRef,
+  onConversationStateChange,
+  isInline = false,
+}) => {
   const sseClientRef = useRef<SSEClient<{
     type: string;
     content: string;
@@ -548,6 +559,10 @@ const AiQaContent: React.FC<{
       window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
 
+  useEffect(() => {
+    onConversationStateChange?.(conversation.length > 0);
+  }, [conversation.length, onConversationStateChange]);
+
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || (!q.trim() && uploadedImages.length === 0)) return;
     setShouldAutoScroll(true); // 开始新搜索时，重置为自动滚动
@@ -734,7 +749,7 @@ const AiQaContent: React.FC<{
   }, []);
 
   useEffect(() => {
-    if (!qaModalOpen) {
+    if (!qaModalOpen && !isInline) {
       conversation.forEach(item => {
         item.image_paths.forEach(image => {
           if (image.startsWith('blob:')) {
@@ -743,7 +758,7 @@ const AiQaContent: React.FC<{
         });
       });
     }
-  }, [qaModalOpen, conversation]);
+  }, [isInline, qaModalOpen, conversation]);
 
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
@@ -776,7 +791,7 @@ const AiQaContent: React.FC<{
               variant='h6'
               sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
             >
-              {kbDetail?.settings?.title}
+              {BrandName}
             </Typography>
           </Box>
 

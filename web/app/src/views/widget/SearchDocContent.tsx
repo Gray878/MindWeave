@@ -5,6 +5,7 @@ import { useStore } from '@/provider';
 import { postShareV1ChatWidgetSearch } from '@/request';
 import { DomainNodeContentChunkSSE } from '@/request/types';
 import { message } from '@ctzhian/ui';
+import { BrandName } from '@/constant';
 import { getImagePath } from '@/utils/getImagePath';
 import {
   alpha,
@@ -225,7 +226,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
           variant='h6'
           sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
         >
-          {kbDetail?.settings?.title}
+          {BrandName}
         </Typography>
       </Stack>
       {/* 搜索输入框 */}

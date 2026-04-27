@@ -16,6 +16,7 @@ import QaModal from '../QaModal';
 import ThemeSwitch from './themeSwitch';
 import { getImagePath } from '@/utils/getImagePath';
 import { useBasePath } from '@/hooks';
+import { BrandName } from '@/constant';
 interface HeaderProps {
   isDocPage?: boolean;
   isWelcomePage?: boolean;
@@ -97,7 +98,7 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
       docWidth={docWidth}
       catalogWidth={catalogWidth}
       logo={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-      title={kbDetail?.settings?.title}
+      title={BrandName}
       placeholder={
         kbDetail?.settings?.web_app_custom_style?.header_search_placeholder
       }
@@ -148,7 +149,7 @@ export const WelcomeHeader = () => {
       docWidth='full'
       catalogWidth={catalogWidth}
       logo={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-      title={kbDetail?.settings?.title}
+      title={BrandName}
       placeholder={
         kbDetail?.settings?.web_app_custom_style?.header_search_placeholder
       }

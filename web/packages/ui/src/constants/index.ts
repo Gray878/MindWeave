@@ -15,4 +15,4 @@ export const DocWidth = {
 };
 
 export const PROJECT_NAME =
-  '5pys572R56uZ55SxIFBhbmRhV2lraSDmj5DkvpvmioDmnK/mlK/mjIE=';
+  '5pys572R56uZ55SxIE1pbmRXZWF2ZSDmj5DkvpvmioDmnK/mlK/mjIE=';

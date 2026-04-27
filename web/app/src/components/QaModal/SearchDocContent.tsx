@@ -21,6 +21,7 @@ import { DomainNodeContentChunkSSE } from '@/request/types';
 import { message } from '@ctzhian/ui';
 import { IconWenjian } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
+import { BrandName } from '@/constant';
 import { useBasePath } from '@/hooks';
 import { getImagePath } from '@/utils/getImagePath';
 
@@ -70,11 +71,15 @@ const SearchDocSkeleton = () => {
 interface SearchDocContentProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   placeholder: string;
+  onSearchStateChange?: (hasSearchState: boolean) => void;
+  isInline?: boolean;
 }
 
 const SearchDocContent: React.FC<SearchDocContentProps> = ({
   inputRef,
   placeholder,
+  onSearchStateChange,
+  isInline = false,
 }) => {
   const { kbDetail, qaModalMode, qaModalOpen } = useStore();
   const basePath = useBasePath();
@@ -203,7 +208,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   };
 
   useEffect(() => {
-    if (!qaModalOpen || qaModalMode !== 'search') {
+    if (isInline || !qaModalOpen || qaModalMode !== 'search') {
       return;
     }
     const presetQuery = sessionStorage.getItem('search_doc_query');
@@ -214,7 +219,11 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
     setInput(presetQuery);
     setHasSearch(false);
     runSearch(presetQuery);
-  }, [qaModalMode, qaModalOpen]);
+  }, [isInline, qaModalMode, qaModalOpen]);
+
+  useEffect(() => {
+    onSearchStateChange?.(isSearching || hasSearch || searchResults.length > 0);
+  }, [hasSearch, isSearching, onSearchStateChange, searchResults.length]);
 
   return (
     <Box>
@@ -239,7 +248,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
           variant='h6'
           sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
         >
-          {kbDetail?.settings?.title}
+          {BrandName}
         </Typography>
       </Stack>
       {/* 搜索输入框 */}
