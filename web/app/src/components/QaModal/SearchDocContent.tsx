@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   TextField,
@@ -76,7 +76,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   inputRef,
   placeholder,
 }) => {
-  const { kbDetail } = useStore();
+  const { kbDetail, qaModalMode, qaModalOpen } = useStore();
   const basePath = useBasePath();
   // 模糊搜索相关状态
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
@@ -124,9 +124,9 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   };
 
   // 执行搜索
-  const handleSearch = async () => {
+  const runSearch = async (query: string) => {
     if (isSearching) return;
-    if (!input.trim()) return;
+    if (!query.trim()) return;
 
     setIsSearching(true);
     setSearchResults([]);
@@ -147,7 +147,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
       setIsSearching(false);
       return;
     }
-    postShareV1ChatSearch({ message: input, captcha_token: token })
+    postShareV1ChatSearch({ message: query, captcha_token: token })
       .then(res => {
         setSearchResults(res.node_result || []);
         setHasSearch(true);
@@ -155,6 +155,10 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
       .finally(() => {
         setIsSearching(false);
       });
+  };
+
+  const handleSearch = async () => {
+    runSearch(input);
   };
 
   // 处理搜索结果点击
@@ -197,6 +201,20 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
       return part;
     });
   };
+
+  useEffect(() => {
+    if (!qaModalOpen || qaModalMode !== 'search') {
+      return;
+    }
+    const presetQuery = sessionStorage.getItem('search_doc_query');
+    if (!presetQuery?.trim()) {
+      return;
+    }
+    sessionStorage.removeItem('search_doc_query');
+    setInput(presetQuery);
+    setHasSearch(false);
+    runSearch(presetQuery);
+  }, [qaModalMode, qaModalOpen]);
 
   return (
     <Box>
