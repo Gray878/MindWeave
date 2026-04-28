@@ -11,13 +11,14 @@
 - 你修改了 `PandaWiki/backend` 的 API 或业务逻辑
 - 你希望最终还是通过根目录 `docker-compose.yml` 启动整套服务
 
-本文档基于当前仓库结构编写，不是通用教程。
+本文档基于当前项目目录结构编写，不是通用教程。  
+这里提到的“根目录”统一指部署根目录（例如 `/opt/mindweave`），不是 `PandaWiki` 这个源码仓库目录。
 
 ## 2. 先说结论
 
 这个项目的线上部署有 4 个关键点：
 
-1. 根目录 [docker-compose.yml](./docker-compose.yml) 负责启动整套服务，包括 `api`、`consumer`、`app`、`nginx`、`postgres`、`redis`、`minio`、`nats`、`qdrant`、`raglite`、`neo4j` 等。
+1. 部署根目录 `/opt/mindweave` 下的 `docker-compose.yml` 负责启动整套服务，包括 `api`、`consumer`、`app`、`nginx`、`postgres`、`redis`、`minio`、`nats`、`qdrant`、`raglite`、`neo4j` 等。
 2. `api` 服务不是直接跑镜像内程序，而是运行宿主机挂载进去的 `./bin/api`。
 3. `app` 和 `nginx` 默认使用远端官方镜像，所以你改了前端源码后，不能只执行 `docker compose up -d`。
 4. `consumer` 默认也是远端镜像；如果你改了消费端逻辑或后端共享代码，最好一起重建 `consumer` 镜像。
@@ -28,6 +29,8 @@
 - 前端和 `consumer` 用源码重新构建镜像
 - `api` 用当前源码重新编译 Linux 二进制到根目录 `bin/api`
 
+注意：`PandaWiki/` 保存源码；`.env`、`docker-compose*.yml`、`bin/api`、`data/` 都位于它外层的部署根目录。
+
 ## 3. 本文使用的部署目录
 
 下面命令统一假设服务器部署目录是：
@@ -37,6 +40,27 @@
 ```
 
 如果你打算放到别的目录，比如 `/srv/mindweave`，把命令里的路径一起替换掉即可。
+
+服务器最终目录大致如下：
+
+```bash
+/opt/mindweave/
+  .env
+  .env.example
+  docker-compose.yml
+  docker-compose.source.yml
+  bin/
+  data/
+  PandaWiki/
+    backend/
+    docs/
+    web/
+```
+
+其中：
+
+- 外层部署根目录保存运行和部署文件
+- `PandaWiki/` 目录保存源码，并且它才是 Git 仓库
 
 ## 4. 服务器准备
 
@@ -126,35 +150,77 @@ git --version
 
 这样你不需要在 Ubuntu 主机里再手动安装 Node、pnpm、Go。
 
-## 6. 上传项目代码到服务器
+## 6. 上传项目代码和部署文件到服务器
 
-推荐两种方式，优先用 `git`。
+这一节最容易混淆。
 
-### 6.1 方式一：通过 Git 推送后再拉取
+当前项目实际上是两层结构：
 
-本地把代码提交到你的 Git 仓库后，在服务器执行：
+- 外层部署根目录保存 `docker-compose.yml`、`docker-compose.source.yml`、`.env.example`、`bin/`、`data/`
+- 内层 `PandaWiki/` 保存源码，并且它才是 Git 仓库
+
+所以服务器最终需要的不是单独一个 `PandaWiki/`，而是整个 `/opt/mindweave` 这层目录结构。
+
+### 6.1 方式一：源码用 Git，部署根文件单独上传
+
+如果你的远程仓库目前只有 `PandaWiki` 这一层源码，那么不能直接把仓库克隆到 `/opt/mindweave`，否则外层部署文件会缺失。
+
+更稳妥的做法是：
+
+1. 在服务器创建部署根目录
+2. 把源码仓库克隆到 `/opt/mindweave/PandaWiki`
+3. 再把外层部署文件单独上传到 `/opt/mindweave`
+
+服务器执行：
 
 ```bash
-sudo mkdir -p /opt
-cd /opt
-sudo git clone <你的仓库地址> mindweave
+sudo mkdir -p /opt/mindweave
 sudo chown -R $USER:$USER /opt/mindweave
 cd /opt/mindweave
+git clone <你的仓库地址> PandaWiki
 ```
 
-后续更新代码时：
+然后在本地外层目录执行，把部署文件上传到服务器：
 
 ```bash
-cd /opt/mindweave
+scp docker-compose.yml docker-compose.source.yml .env.example \
+  user@<服务器IP>:/opt/mindweave/
+```
+
+如果你已经提前在本地写好了 `.env`，也可以一并上传。
+
+后续更新源码时：
+
+```bash
+cd /opt/mindweave/PandaWiki
 git pull
 ```
 
-### 6.2 方式二：直接上传本地目录
+如果你修改了外层的 `docker-compose.yml`、`docker-compose.source.yml` 或 `.env.example`，还要重新把这些文件传到 `/opt/mindweave/`。
 
-如果你还没有把代码推到 Git，可以直接从本地传到服务器：
+### 6.2 方式二：直接上传本地部署目录
+
+如果你本地已经有完整的两层目录，最省事的方式是直接把外层部署目录中的必要文件上传到服务器。
+
+至少要上传这些内容：
+
+- `docker-compose.yml`
+- `docker-compose.source.yml`
+- `.env.example`
+- `PandaWiki/`
+
+如果你想保留已有数据，也可以一起上传 `data/`；如果是全新服务器，后面在服务器创建即可。  
+不建议上传 `.codex`、`.gocache`、`.pnpm-home`、`.vscode` 这类本地缓存目录。
+
+例如在本地外层目录执行：
 
 ```bash
-scp -r <本地项目目录> user@<服务器IP>:/opt/mindweave
+ssh user@<服务器IP> "mkdir -p /opt/mindweave"
+
+scp docker-compose.yml docker-compose.source.yml .env.example \
+  user@<服务器IP>:/opt/mindweave/
+
+scp -r PandaWiki user@<服务器IP>:/opt/mindweave/
 ```
 
 上传完成后，在服务器进入目录：
@@ -165,7 +231,7 @@ cd /opt/mindweave
 
 ## 7. 准备环境变量
 
-根目录已经有 [.env.example](./.env.example)，先复制一份：
+部署根目录 `/opt/mindweave` 里需要有 `.env.example`，先复制一份：
 
 ```bash
 cd /opt/mindweave
@@ -303,13 +369,13 @@ chmod +x /opt/mindweave/bin/api
 
 ## 11. 使用源码镜像覆盖前端和 consumer
 
-仓库根目录已经补充了 [docker-compose.source.yml](./docker-compose.source.yml)，它的作用是：
+部署根目录 `/opt/mindweave` 中的 `docker-compose.source.yml` 用来覆盖默认镜像配置，它的作用是：
 
 - `app` 使用本地构建镜像 `mindweave-app-custom:latest`
 - `nginx` 使用本地构建镜像 `mindweave-nginx-custom:latest`
 - `consumer` 使用本地构建镜像 `mindweave-consumer-custom:latest`
 
-你不需要手工改原始的 `docker-compose.yml`。
+你不需要手工改原始的 `docker-compose.yml`，但启动时一定要额外带上 `-f docker-compose.source.yml`。
 
 ## 12. 首次启动整套服务
 
@@ -411,9 +477,12 @@ ls -lah /opt/mindweave/data/nginx/ssl
 ### 16.1 拉取最新代码
 
 ```bash
-cd /opt/mindweave
+cd /opt/mindweave/PandaWiki
 git pull
 ```
+
+如果你不是通过 Git 更新源码，而是直接上传目录，那么这里改成重新上传最新的 `PandaWiki/` 源码目录。  
+如果你同时修改了外层的 `docker-compose.yml`、`docker-compose.source.yml` 或 `.env.example`，也别忘了把这些文件重新传到 `/opt/mindweave/`。
 
 ### 16.2 如果改了前端
 
@@ -628,7 +697,7 @@ docker compose \
 ### 19.2 只执行 `docker compose up -d --build`
 
 根目录基础 compose 里没有给 `app` / `nginx` / `consumer` 配置 `build`。  
-如果你不带 [docker-compose.source.yml](./docker-compose.source.yml)，这个 `--build` 基本不会把你的前端源码打进去。
+如果你不带部署根目录里的 `docker-compose.source.yml`，这个 `--build` 基本不会把你的前端源码打进去。
 
 ### 19.3 只在 `PandaWiki/backend/bin/api` 里编译
 
@@ -636,11 +705,22 @@ docker compose \
 
 ## 20. 一套可直接照抄的首次部署命令
 
-如果你想直接按顺序执行，可以参考下面这一整段：
+如果你本地目录和本文一致，也就是外层有 `docker-compose.yml`，内层是 `PandaWiki/`，可以参考下面顺序。
+
+先在本地执行：
 
 ```bash
-cd /opt
-git clone <你的仓库地址> mindweave
+ssh user@<服务器IP> "mkdir -p /opt/mindweave"
+
+scp docker-compose.yml docker-compose.source.yml .env.example \
+  user@<服务器IP>:/opt/mindweave/
+
+scp -r PandaWiki user@<服务器IP>:/opt/mindweave/
+```
+
+再在服务器执行：
+
+```bash
 cd /opt/mindweave
 
 cp .env.example .env
