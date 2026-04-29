@@ -317,6 +317,32 @@ docker run --rm \
   bash -lc "corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-admin build && corepack pnpm@10.12.1 --filter panda-wiki-app build"
 ```
 
+或者单独构建
+
+```bash
+# 构建admin代码
+docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e NODE_OPTIONS="--max-old-space-size=4096" \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
+  node:22-bullseye \
+  bash -lc 'set -eux; corepack pnpm@10.12.1 install --frozen-lockfile; corepack pnpm@10.12.1 --filter panda-wiki-admin build'
+
+# 构建app代码
+docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e NODE_OPTIONS="--max-old-space-size=4096" \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
+  node:22-bullseye \
+  bash -lc 'set -eux; corepack pnpm@10.12.1 install --frozen-lockfile; corepack pnpm@10.12.1 --filter panda-wiki-app build'
+```
+
+
+
 构建完成后，检查产物：
 
 ```bash
