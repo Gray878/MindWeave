@@ -2,6 +2,7 @@
 
 import Logo from '@/assets/images/logo.png';
 import { BrandName } from '@/constant';
+import { LandingFooter as SharedLandingFooter } from '@/components/footer';
 import QaModal from '@/components/QaModal';
 import AiQaContent from '@/components/QaModal/AiQaContent';
 import SearchDocContent from '@/components/QaModal/SearchDocContent';
@@ -405,13 +406,6 @@ const FaqCard = styled(Accordion)(({ theme }) => ({
   },
 }));
 
-const LandingFooter = styled('footer')(({ theme }) => ({
-  padding: theme.spacing(4, 3),
-  borderTop: '1px solid rgba(16, 25, 24, 0.08)',
-  background: '#101918',
-  color: 'rgba(255, 255, 255, 0.88)',
-}));
-
 const StandardLanding = () => {
   const basePath = useBasePath();
   const { kbDetail, mobile } = useStore();
@@ -491,8 +485,6 @@ const StandardLanding = () => {
       defaultHotSearch;
     return list.filter(Boolean).slice(0, 4);
   }, [bannerConfig?.banner_config?.hot_search, settings?.recommend_questions]);
-
-  const footerName = BrandName;
 
   const features = [
     {
@@ -1265,54 +1257,10 @@ const StandardLanding = () => {
         </SectionInner>
       </Section>
 
-      <LandingFooter>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-          justifyContent='space-between'
-          gap={3}
-          sx={{ maxWidth: 1200, mx: 'auto' }}
-        >
-          <Stack direction='row' alignItems='center' gap={1.5}>
-            <Image
-              src={logo}
-              alt={title}
-              width={34}
-              height={34}
-              unoptimized
-              style={{ objectFit: 'contain' }}
-            />
-            <Box>
-              <Typography sx={{ color: '#fff', fontWeight: 800 }}>
-                {title}
-              </Typography>
-              <Typography
-                sx={{ color: 'rgba(255,255,255,0.56)', fontSize: 12 }}
-              >
-                Copyright {new Date().getFullYear()} {footerName}
-              </Typography>
-            </Box>
-          </Stack>
-
-          <Stack direction='row' gap={1} flexWrap='wrap'>
-            <NavButton href={docPath} sx={{ color: '#fff' }}>
-              知识库
-            </NavButton>
-            <NavButton
-              onClick={() => scrollToSection('project-intro')}
-              sx={{ color: '#fff' }}
-            >
-              介绍
-            </NavButton>
-            <NavButton
-              onClick={() => scrollToSection('project-faq')}
-              sx={{ color: '#fff' }}
-            >
-              FAQ
-            </NavButton>
-          </Stack>
-        </Stack>
-      </LandingFooter>
+      <SharedLandingFooter
+        onIntroClick={() => scrollToSection('project-intro')}
+        onFaqClick={() => scrollToSection('project-faq')}
+      />
 
       <QaModal />
     </LandingRoot>

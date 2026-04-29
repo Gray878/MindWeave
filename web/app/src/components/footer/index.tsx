@@ -8,6 +8,7 @@ import {
   Footer,
   WelcomeFooter as WelcomeFooterComponent,
 } from '@panda-wiki/ui';
+export { default as LandingFooter } from './LandingFooter';
 
 export const FooterProvider = ({
   showBrand = true,
