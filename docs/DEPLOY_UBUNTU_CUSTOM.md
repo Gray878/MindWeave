@@ -341,6 +341,23 @@ docker run --rm \
   bash -lc 'set -eux; corepack pnpm@10.12.1 install --frozen-lockfile; corepack pnpm@10.12.1 --filter panda-wiki-app build'
 ```
 
+```bash
+# 关闭所有容器
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  down
+
+# 重启
+cd /opt/mindweave
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  up -d
+```
+
 
 
 构建完成后，检查产物：
@@ -416,6 +433,100 @@ ls -lah /opt/mindweave/PandaWiki/web/app/dist
 ls -lah /opt/mindweave/PandaWiki/web/admin/dist
 ```
 
+### 9.2 重新部署前端项目流程
+
+如果你仍然想在低配云服务器上直接重新构建前端，而不是改成本地构建上传，可以按下面的顺序操作。这个流程适合前端构建经常因为内存不足被 `Killed` 或退出码 `137` 的情况。
+
+1. 先把容器停掉，腾内存
+
+```bash
+cd /opt/mindweave
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  down
+```
+
+2. 给服务器加 `swap`，至少 4G
+
+```bash
+fallocate -l 4G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+free -h
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+3. 再重跑构建，顺手限制一下 Node 堆，避免一下子吃太猛
+
+```bash
+docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e NODE_OPTIONS="--max-old-space-size=2048" \
+  -e TARGET=http://api:8000 \
+  -e STATIC_FILE_TARGET=http://api:8000 \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
+  node:22-bullseye \
+  bash -lc 'corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-app build'
+```
+
+如果你这次也改了管理后台，还可以在这里追加一条 `admin` 构建命令：
+
+```bash
+docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e NODE_OPTIONS="--max-old-space-size=2048" \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
+  node:22-bullseye \
+  bash -lc 'corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-admin build'
+```
+
+4. 先重建更新过的前端镜像
+
+```bash
+cd /opt/mindweave
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  build app
+```
+
+如果你同时更新了 `admin`，可以改成：
+
+```bash
+cd /opt/mindweave
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  build app nginx
+```
+
+5. 最后再把整套服务重新启动起来
+
+```bash
+cd /opt/mindweave
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  up -d
+
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  up -d --build app nginx
+
+docker compose restart api
+```
+
 ## 10. 编译后端 API 到根目录 `bin/api`
 
 当前 compose 中，`api` 实际执行的是：
@@ -477,11 +588,21 @@ chmod +x /opt/mindweave/bin/api
 ```bash
 cd /opt/mindweave
 
+cd /opt/mindweave
+
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  up -d
+
 docker compose \
   --env-file .env \
   -f docker-compose.yml \
   -f docker-compose.source.yml \
-  up -d --build
+  up -d --build app nginx
+
+docker compose restart api
+
 ```
 
 说明：
@@ -592,6 +713,9 @@ docker run --rm \
 ```
 
 如果服务器配置较低，这一步也可以改成本地构建后上传 `PandaWiki/web/admin/dist` 和 `PandaWiki/web/app/dist`，具体参考第 9.1 节。
+如果你仍然希望在服务器本机重新构建前端，也可以参考第 9.2 节先停容器、加 `swap`，再单独重建 `app`。
+
+第 9.2 节里的低内存方案已经调整为：先重建更新过的前端镜像，再统一 `up -d` 恢复整套服务。
 
 ### 16.3 如果改了后端 API
 
@@ -618,6 +742,16 @@ docker compose \
   -f docker-compose.yml \
   -f docker-compose.source.yml \
   up -d --build
+
+  或
+
+docker compose \
+  --env-file .env \
+  -f docker-compose.yml \
+  -f docker-compose.source.yml \
+  up -d --build app nginx
+
+docker compose restart api
 ```
 
 ### 16.5 查看结果

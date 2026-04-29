@@ -3,6 +3,8 @@
 import Logo from '@/assets/images/logo.png';
 import { BrandName } from '@/constant';
 import QaModal from '@/components/QaModal';
+import AiQaContent from '@/components/QaModal/AiQaContent';
+import SearchDocContent from '@/components/QaModal/SearchDocContent';
 import {
   StyledHotSearchColumn,
   StyledHotSearchColumnItem,
@@ -39,7 +41,7 @@ import {
   IconZhinengwenda,
 } from '@panda-wiki/icons';
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const defaultHotSearch = [
   '如何安装 MindWeave',
@@ -412,7 +414,7 @@ const LandingFooter = styled('footer')(({ theme }) => ({
 
 const StandardLanding = () => {
   const basePath = useBasePath();
-  const { kbDetail, mobile, setQaModalMode, setQaModalOpen } = useStore();
+  const { kbDetail, mobile } = useStore();
   const settings = kbDetail?.settings;
   const title = BrandName;
   const description =
@@ -425,6 +427,13 @@ const StandardLanding = () => {
   const [chatQuery, setChatQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [typedPlaceholder, setTypedPlaceholder] = useState('');
+  const [inlineFlow, setInlineFlow] = useState<{
+    mode: 'chat' | 'search';
+    query: string;
+    key: number;
+  } | null>(null);
+  const inlineChatInputRef = useRef<HTMLInputElement | null>(null);
+  const inlineSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const bannerConfig = useMemo(
     () =>
@@ -434,6 +443,11 @@ const StandardLanding = () => {
 
   const cardTitle = bannerConfig?.banner_config?.title || '知识库问答';
   const animatedPlaceholder = `${typedPlaceholder}|`;
+  const inlinePlaceholder =
+    settings?.search_placeholder ||
+    settings?.web_app_custom_style?.header_search_placeholder ||
+    '请输入问题或关键词';
+  const isInlineModeActive = inlineFlow?.mode === searchMode;
 
   useEffect(() => {
     let currentCharIndex = 0;
@@ -531,32 +545,43 @@ const StandardLanding = () => {
     });
   };
 
-  const openChatModal = (value?: string) => {
-    const nextQuery = (value ?? chatQuery).trim();
-    if (nextQuery) {
-      sessionStorage.setItem('chat_search_query', nextQuery);
+  const startInlineFlow = (mode: 'chat' | 'search', value?: string) => {
+    const rawQuery = mode === 'chat' ? chatQuery : searchQuery;
+    const nextQuery = (value ?? rawQuery).trim();
+    if (!nextQuery) {
+      return;
     }
-    setQaModalMode?.('chat');
-    setQaModalOpen?.(true);
-    setChatQuery('');
+    setInlineFlow({
+      mode,
+      query: nextQuery,
+      key: Date.now(),
+    });
+    if (mode === 'chat') {
+      setChatQuery('');
+      return;
+    }
+    setSearchQuery('');
   };
 
-  const openSearchModal = (value?: string) => {
-    const nextQuery = (value ?? searchQuery).trim();
-    if (nextQuery) {
-      sessionStorage.setItem('search_doc_query', nextQuery);
-    }
-    setQaModalMode?.('search');
-    setQaModalOpen?.(true);
+  const resetInlineFlow = () => {
+    setInlineFlow(null);
+    setChatQuery('');
     setSearchQuery('');
+  };
+
+  const handleModeChange = (value: 'chat' | 'search') => {
+    setSearchMode(value);
+    if (inlineFlow?.mode !== value) {
+      resetInlineFlow();
+    }
   };
 
   const handleQuickAction = (value: string) => {
     if (searchMode === 'chat') {
-      openChatModal(value);
+      startInlineFlow('chat', value);
       return;
     }
-    openSearchModal(value);
+    startInlineFlow('search', value);
   };
 
   return (
@@ -624,7 +649,15 @@ const StandardLanding = () => {
         <KnowledgeScene aria-hidden='true' />
 
         <HeroInner>
-          <EntryShell>
+          <EntryShell
+            sx={{
+              minHeight: isInlineModeActive
+                ? { xs: 500, md: 640 }
+                : { xs: 388, md: 388 },
+              maxHeight: isInlineModeActive ? 'min(80vh, 860px)' : 'none',
+              overflow: isInlineModeActive ? 'hidden' : 'visible',
+            }}
+          >
             <Box
               sx={{
                 display: 'flex',
@@ -637,7 +670,7 @@ const StandardLanding = () => {
               <InlineShellTabs
                 value={searchMode}
                 onChange={(_, value) =>
-                  setSearchMode(value as 'chat' | 'search')
+                  handleModeChange(value as 'chat' | 'search')
                 }
                 variant='scrollable'
                 scrollButtons={false}
@@ -683,188 +716,228 @@ const StandardLanding = () => {
               </Button>
             </Box>
 
-            <PromptBrand>
-              <Typography
-                component='h1'
+            {isInlineModeActive && inlineFlow ? (
+              <Box
                 sx={{
-                  maxWidth: 680,
-                  color: 'text.primary',
-                  fontSize: { xs: 28, md: 40 },
-                  lineHeight: { xs: '36px', md: '48px' },
-                  fontWeight: 800,
-                  wordBreak: 'break-word',
+                  flex: 1,
+                  minHeight: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  pt: { xs: 0.5, md: 1 },
                 }}
               >
-                {cardTitle}
-              </Typography>
-
-              {hotSearch.length > 0 && (
-                <Box sx={{ width: '100%', maxWidth: 700 }}>
+                {searchMode === 'chat' ? (
+                  <AiQaContent
+                    key={`landing-chat-${inlineFlow.key}`}
+                    hotSearch={hotSearch}
+                    placeholder={inlinePlaceholder}
+                    inputRef={inlineChatInputRef}
+                    isInline
+                    presetQuery={inlineFlow.query}
+                    presetQueryKey={inlineFlow.key}
+                    hideWelcomeState
+                    onResetToPrompt={resetInlineFlow}
+                  />
+                ) : (
+                  <SearchDocContent
+                    key={`landing-search-${inlineFlow.key}`}
+                    inputRef={inlineSearchInputRef}
+                    placeholder={inlinePlaceholder}
+                    isInline
+                    hideBranding
+                    presetQuery={inlineFlow.query}
+                    presetQueryKey={inlineFlow.key}
+                  />
+                )}
+              </Box>
+            ) : (
+              <>
+                <PromptBrand>
                   <Typography
+                    component='h1'
                     sx={{
-                      mb: 1.5,
-                      color: 'primary.main',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textAlign: 'left',
+                      maxWidth: 680,
+                      color: 'text.primary',
+                      fontSize: { xs: 28, md: 40 },
+                      lineHeight: { xs: '36px', md: '48px' },
+                      fontWeight: 800,
+                      wordBreak: 'break-word',
                     }}
                   >
-                    大家都在搜什么？
+                    {cardTitle}
                   </Typography>
-                  <StyledHotSearchContainer sx={{ gap: { xs: 1.25, md: 2 } }}>
-                    <StyledHotSearchColumn sx={{ pl: { xs: 1.5, md: 2 } }}>
-                      {hotSearch
-                        .filter((_, index) => index % 2 === 0)
-                        .map(item => (
-                          <StyledHotSearchColumnItem
-                            key={item}
-                            onClick={() => handleQuickAction(item)}
-                            sx={{
-                              minHeight: 24,
-                              pr: 1,
-                              fontSize: 13,
-                              lineHeight: 1.7,
-                            }}
-                          >
-                            • {item}
-                          </StyledHotSearchColumnItem>
-                        ))}
-                    </StyledHotSearchColumn>
-                    <StyledHotSearchColumn sx={{ pl: { xs: 1.5, md: 2 } }}>
-                      {hotSearch
-                        .filter((_, index) => index % 2 === 1)
-                        .map(item => (
-                          <StyledHotSearchColumnItem
-                            key={item}
-                            onClick={() => handleQuickAction(item)}
-                            sx={{
-                              minHeight: 24,
-                              pr: 1,
-                              fontSize: 13,
-                              lineHeight: 1.7,
-                            }}
-                          >
-                            • {item}
-                          </StyledHotSearchColumnItem>
-                        ))}
-                    </StyledHotSearchColumn>
-                  </StyledHotSearchContainer>
-                </Box>
-              )}
-            </PromptBrand>
 
-            {searchMode === 'chat' ? (
-              <StyledInputWrapper
-                sx={{
-                  mt: 1.5,
-                  px: { xs: 1.25, md: 1.5 },
-                  py: { xs: 0.75, md: 0.875 },
-                  borderRadius: '16px',
-                  minHeight: { xs: 58, md: 62 },
-                  alignItems: 'center',
-                  gap: 0.75,
-                }}
-              >
-                <StyledTextField
-                  fullWidth
-                  multiline
-                  rows={1}
-                  value={chatQuery}
-                  onChange={event => setChatQuery(event.target.value)}
-                  onKeyDown={event => {
-                    const isComposing =
-                      event.nativeEvent.isComposing ||
-                      event.nativeEvent.keyCode === 229;
-                    if (
-                      event.key === 'Enter' &&
-                      !event.shiftKey &&
-                      chatQuery.trim() &&
-                      !isComposing
-                    ) {
-                      event.preventDefault();
-                      openChatModal();
-                    }
-                  }}
-                  placeholder={animatedPlaceholder}
-                  autoComplete='off'
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: '40px !important',
+                  {hotSearch.length > 0 && (
+                    <Box sx={{ width: '100%', maxWidth: 700 }}>
+                      <Typography
+                        sx={{
+                          mb: 1.5,
+                          color: 'primary.main',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          textAlign: 'left',
+                        }}
+                      >
+                        大家都在搜什么？
+                      </Typography>
+                      <StyledHotSearchContainer
+                        sx={{ gap: { xs: 1.25, md: 2 } }}
+                      >
+                        <StyledHotSearchColumn sx={{ pl: { xs: 1.5, md: 2 } }}>
+                          {hotSearch
+                            .filter((_, index) => index % 2 === 0)
+                            .map(item => (
+                              <StyledHotSearchColumnItem
+                                key={item}
+                                onClick={() => handleQuickAction(item)}
+                                sx={{
+                                  minHeight: 24,
+                                  pr: 1,
+                                  fontSize: 13,
+                                  lineHeight: 1.7,
+                                }}
+                              >
+                                • {item}
+                              </StyledHotSearchColumnItem>
+                            ))}
+                        </StyledHotSearchColumn>
+                        <StyledHotSearchColumn sx={{ pl: { xs: 1.5, md: 2 } }}>
+                          {hotSearch
+                            .filter((_, index) => index % 2 === 1)
+                            .map(item => (
+                              <StyledHotSearchColumnItem
+                                key={item}
+                                onClick={() => handleQuickAction(item)}
+                                sx={{
+                                  minHeight: 24,
+                                  pr: 1,
+                                  fontSize: 13,
+                                  lineHeight: 1.7,
+                                }}
+                              >
+                                • {item}
+                              </StyledHotSearchColumnItem>
+                            ))}
+                        </StyledHotSearchColumn>
+                      </StyledHotSearchContainer>
+                    </Box>
+                  )}
+                </PromptBrand>
+
+                {searchMode === 'chat' ? (
+                  <StyledInputWrapper
+                    sx={{
+                      mt: 1.5,
+                      px: { xs: 1.25, md: 1.5 },
+                      py: { xs: 0.75, md: 0.875 },
+                      borderRadius: '16px',
+                      minHeight: { xs: 58, md: 62 },
                       alignItems: 'center',
-                    },
-                    textarea: {
-                      paddingTop: '8px !important',
-                      paddingBottom: '8px !important',
-                      fontSize: 16,
-                      lineHeight: '24px',
-                    },
-                  }}
-                />
-
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <IconButton
-                    size='small'
-                    disabled={!chatQuery.trim()}
-                    onClick={() => openChatModal()}
+                      gap: 0.75,
+                    }}
                   >
-                    <IconFasong
+                    <StyledTextField
+                      fullWidth
+                      multiline
+                      rows={1}
+                      value={chatQuery}
+                      onChange={event => setChatQuery(event.target.value)}
+                      onKeyDown={event => {
+                        const isComposing =
+                          event.nativeEvent.isComposing ||
+                          event.nativeEvent.keyCode === 229;
+                        if (
+                          event.key === 'Enter' &&
+                          !event.shiftKey &&
+                          chatQuery.trim() &&
+                          !isComposing
+                        ) {
+                          event.preventDefault();
+                          startInlineFlow('chat');
+                        }
+                      }}
+                      placeholder={animatedPlaceholder}
+                      autoComplete='off'
                       sx={{
-                        fontSize: 18,
-                        color: chatQuery.trim()
-                          ? 'primary.main'
-                          : 'text.disabled',
+                        '& .MuiInputBase-root': {
+                          height: '40px !important',
+                          alignItems: 'center',
+                        },
+                        textarea: {
+                          paddingTop: '8px !important',
+                          paddingBottom: '8px !important',
+                          fontSize: 16,
+                          lineHeight: '24px',
+                        },
                       }}
                     />
-                  </IconButton>
-                </Box>
-              </StyledInputWrapper>
-            ) : (
-              <PromptSearchField
-                fullWidth
-                value={searchQuery}
-                placeholder={animatedPlaceholder}
-                onChange={event => setSearchQuery(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' && searchQuery.trim()) {
-                    event.preventDefault();
-                    openSearchModal();
-                  }
-                }}
-                sx={{ mt: 2 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <IconJinsousuo
-                          sx={{ fontSize: 20, color: 'text.secondary' }}
-                        />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <IconButton
-                          size='small'
-                          onClick={() => openSearchModal()}
-                          disabled={!searchQuery.trim()}
+
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
+                      <IconButton
+                        size='small'
+                        disabled={!chatQuery.trim()}
+                        onClick={() => startInlineFlow('chat')}
+                      >
+                        <IconFasong
                           sx={{
-                            color: 'primary.main',
-                            '&:hover': { bgcolor: 'primary.lighter' },
-                            '&.Mui-disabled': { color: 'action.disabled' },
+                            fontSize: 18,
+                            color: chatQuery.trim()
+                              ? 'primary.main'
+                              : 'text.disabled',
                           }}
-                        >
-                          <IconFasong sx={{ fontSize: 20 }} />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+                        />
+                      </IconButton>
+                    </Box>
+                  </StyledInputWrapper>
+                ) : (
+                  <PromptSearchField
+                    fullWidth
+                    value={searchQuery}
+                    placeholder={animatedPlaceholder}
+                    onChange={event => setSearchQuery(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' && searchQuery.trim()) {
+                        event.preventDefault();
+                        startInlineFlow('search');
+                      }
+                    }}
+                    sx={{ mt: 2 }}
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position='start'>
+                            <IconJinsousuo
+                              sx={{ fontSize: 20, color: 'text.secondary' }}
+                            />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position='end'>
+                            <IconButton
+                              size='small'
+                              onClick={() => startInlineFlow('search')}
+                              disabled={!searchQuery.trim()}
+                              sx={{
+                                color: 'primary.main',
+                                '&:hover': { bgcolor: 'primary.lighter' },
+                                '&.Mui-disabled': { color: 'action.disabled' },
+                              }}
+                            >
+                              <IconFasong sx={{ fontSize: 20 }} />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+                )}
+              </>
             )}
           </EntryShell>
         </HeroInner>

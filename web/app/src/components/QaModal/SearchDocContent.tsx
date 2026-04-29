@@ -73,6 +73,9 @@ interface SearchDocContentProps {
   placeholder: string;
   onSearchStateChange?: (hasSearchState: boolean) => void;
   isInline?: boolean;
+  presetQuery?: string;
+  presetQueryKey?: string | number;
+  hideBranding?: boolean;
 }
 
 const SearchDocContent: React.FC<SearchDocContentProps> = ({
@@ -80,6 +83,9 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   placeholder,
   onSearchStateChange,
   isInline = false,
+  presetQuery,
+  presetQueryKey,
+  hideBranding = false,
 }) => {
   const { kbDetail, qaModalMode, qaModalOpen } = useStore();
   const basePath = useBasePath();
@@ -222,35 +228,48 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   }, [isInline, qaModalMode, qaModalOpen]);
 
   useEffect(() => {
+    if (!isInline || !presetQuery?.trim() || presetQueryKey === undefined) {
+      return;
+    }
+    setInput(presetQuery);
+    setHasSearch(false);
+    runSearch(presetQuery);
+  }, [isInline, presetQuery, presetQueryKey]);
+
+  useEffect(() => {
     onSearchStateChange?.(isSearching || hasSearch || searchResults.length > 0);
   }, [hasSearch, isSearching, onSearchStateChange, searchResults.length]);
 
   return (
-    <Box>
-      <Stack
-        direction='row'
-        alignItems='center'
-        justifyContent='center'
-        gap={2}
-        sx={{ mb: 3, mt: 1 }}
-      >
-        <Image
-          src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-          alt='logo'
-          width={46}
-          height={46}
-          unoptimized
-          style={{
-            objectFit: 'contain',
-          }}
-        />
-        <Typography
-          variant='h6'
-          sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+    <Box
+      sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+    >
+      {!hideBranding && (
+        <Stack
+          direction='row'
+          alignItems='center'
+          justifyContent='center'
+          gap={2}
+          sx={{ mb: 3, mt: 1 }}
         >
-          {BrandName}
-        </Typography>
-      </Stack>
+          <Image
+            src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
+            alt='logo'
+            width={46}
+            height={46}
+            unoptimized
+            style={{
+              objectFit: 'contain',
+            }}
+          />
+          <Typography
+            variant='h6'
+            sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+          >
+            {BrandName}
+          </Typography>
+        </Stack>
+      )}
       {/* 搜索输入框 */}
       <TextField
         ref={inputRef}
@@ -368,7 +387,12 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
           </Typography>
 
           {/* 搜索结果列表 */}
-          <Stack sx={{ overflow: 'auto', maxHeight: 'calc(100vh - 334px)' }}>
+          <Stack
+            sx={{
+              overflow: 'auto',
+              maxHeight: isInline ? '100%' : 'calc(100vh - 334px)',
+            }}
+          >
             {searchResults.map((result, index) => (
               <StyledSearchResultItem
                 direction='row'

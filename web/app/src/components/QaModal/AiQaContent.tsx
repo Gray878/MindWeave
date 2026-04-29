@@ -138,6 +138,10 @@ interface AiQaContentProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   onConversationStateChange?: (hasConversation: boolean) => void;
   isInline?: boolean;
+  presetQuery?: string;
+  presetQueryKey?: string | number;
+  hideWelcomeState?: boolean;
+  onResetToPrompt?: () => void;
 }
 
 const AiQaContent: React.FC<AiQaContentProps> = ({
@@ -146,6 +150,10 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
   inputRef,
   onConversationStateChange,
   isInline = false,
+  presetQuery,
+  presetQueryKey,
+  hideWelcomeState = false,
+  onResetToPrompt,
 }) => {
   const sseClientRef = useRef<SSEClient<{
     type: string;
@@ -185,24 +193,29 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
     behavior: 'smooth',
   });
 
-  const onReset = () => {
-    if (loading) {
-      handleSearchAbort();
-    }
-    handleSearch(true);
-    setConversationId('');
-    setConversation([]);
-    setFullAnswer('');
-    setInput('');
-    // 清理图片URL
+  const clearUploadedImages = () => {
     uploadedImages.forEach(img => {
       if (img.url.startsWith('blob:')) {
         URL.revokeObjectURL(img.url);
       }
     });
     setUploadedImages([]);
+  };
+
+  const onReset = () => {
+    if (loading) {
+      handleSearchAbort();
+    }
+    setConversationId('');
+    setConversation([]);
+    setFullAnswer('');
+    setInput('');
+    clearUploadedImages();
     setLoading(false);
+    setThinking(4);
     setNonce('');
+    messageIdRef.current = '';
+    lastResultExpendRef.current = false;
   };
 
   const handleSearch = (reset: boolean = false) => {
@@ -654,38 +667,52 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
         });
       },
     });
-    const searchQuery =
-      sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
-    if (searchQuery) {
-      sessionStorage.removeItem('chat_search_query');
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.delete('cid');
-      newSearchParams.delete('ask');
-      window.history.replaceState(null, '', newSearchParams.toString());
-      onSearch(searchQuery, true);
+    if (!isInline) {
+      const searchQuery =
+        sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
+      if (searchQuery) {
+        sessionStorage.removeItem('chat_search_query');
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('cid');
+        currentUrl.searchParams.delete('ask');
+        window.history.replaceState(null, '', currentUrl.toString());
+        onSearch(searchQuery, true);
+      }
     }
     return () => {
       handleSearchAbort();
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('cid');
-      currentUrl.searchParams.delete('ask');
-      window.history.replaceState(null, '', currentUrl.toString());
-      setTimeout(() => {
-        onReset();
-      });
+      if (!isInline) {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('cid');
+        currentUrl.searchParams.delete('ask');
+        window.history.replaceState(null, '', currentUrl.toString());
+      }
     };
   }, []);
 
   useEffect(() => {
+    if (!isInline || !presetQuery?.trim() || presetQueryKey === undefined) {
+      return;
+    }
+    onSearch(presetQuery, true);
+  }, [isInline, presetQuery, presetQueryKey]);
+
+  useEffect(() => {
+    if (isInline) {
+      return;
+    }
     if (conversationId) {
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('cid', conversationId);
       currentUrl.searchParams.delete('ask');
       window.history.replaceState(null, '', currentUrl.toString());
     }
-  }, [conversationId]);
+  }, [conversationId, isInline]);
 
   useEffect(() => {
+    if (isInline) {
+      return;
+    }
     const cid = searchParams.get('cid');
     if (cid) {
       const conversation: ConversationItem[] = [];
@@ -763,7 +790,7 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
       {/* 无对话时显示欢迎界面 */}
-      {conversation.length === 0 && (
+      {conversation.length === 0 && !hideWelcomeState && (
         <Box
           sx={{
             flex: 1,
@@ -861,6 +888,7 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
         direction='column'
         className='conversation-container'
         sx={{
+          maxHeight: isInline ? '100%' : 'calc(100vh - 332px)',
           mb: conversation?.length > 0 ? 2 : 0,
           display: conversation.length > 0 ? 'flex' : 'none',
         }}
@@ -1093,7 +1121,12 @@ const AiQaContent: React.FC<AiQaContentProps> = ({
             },
             mb: 2,
           })}
-          onClick={onReset}
+          onClick={() => {
+            onReset();
+            if (isInline) {
+              onResetToPrompt?.();
+            }
+          }}
         >
           <IconXinduihua sx={{ fontSize: 14 }} />
           新会话
