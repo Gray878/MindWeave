@@ -302,16 +302,19 @@ mkdir -p \
 
 在服务器执行：
 
+注意：这里要挂载整个 `/opt/mindweave`，并把工作目录切到 `/workspace/PandaWiki/web`。  
+不要只挂载 `PandaWiki/web`，因为 `web/package.json` 里的 `prepare` 脚本依赖上层目录结构。
+
 ```bash
 cd /opt/mindweave
 
 docker run --rm \
   -u "$(id -u):$(id -g)" \
   -e HOME=/tmp \
-  -v /opt/mindweave/PandaWiki/web:/workspace \
-  -w /workspace \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
   node:22-bullseye \
-  bash -lc "corepack enable && corepack prepare pnpm@10.12.1 --activate && pnpm install && pnpm build"
+  bash -lc "corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-admin build && corepack pnpm@10.12.1 --filter panda-wiki-app build"
 ```
 
 构建完成后，检查产物：
@@ -323,13 +326,77 @@ ls -lah /opt/mindweave/PandaWiki/web/admin/dist
 
 如果这里没有输出目录，不要继续往下走，先解决前端构建问题。
 
+### 9.1 如果服务器内存不够：改成本地构建再上传
+
+如果云服务器在 `vite build` 或 `next build` 时出现 OOM，那么可以改成：
+
+1. 在本地先构建前端产物
+2. 把构建结果上传到服务器
+3. 服务器只负责 `docker compose ... --build`
+
+注意：
+
+- 推荐在本地 `Linux`、`WSL2` 或本地 Docker 容器里构建
+- 不建议直接在 Windows 原生环境构建 `PandaWiki/web/app`
+- 因为 `next build` 的 `standalone` 产物可能涉及符号链接，Windows 下容易失败
+
+本地构建：
+
+```bash
+cd PandaWiki/web
+
+corepack pnpm@10.12.1 install --frozen-lockfile
+corepack pnpm@10.12.1 --filter panda-wiki-admin build
+corepack pnpm@10.12.1 --filter panda-wiki-app build
+```
+
+本地打包产物：
+
+```bash
+cd PandaWiki/web
+
+tar czf admin-dist.tar.gz admin/dist
+tar czf app-dist.tar.gz app/dist
+```
+
+上传到服务器：
+
+```bash
+scp admin-dist.tar.gz user@<服务器IP>:/opt/mindweave/
+scp app-dist.tar.gz user@<服务器IP>:/opt/mindweave/
+```
+
+在服务器解压覆盖：
+
+```bash
+cd /opt/mindweave/PandaWiki/web
+
+rm -rf admin/dist app/dist
+tar xzf /opt/mindweave/admin-dist.tar.gz
+tar xzf /opt/mindweave/app-dist.tar.gz
+```
+
+如果你本地还改了这些文件，也要一并同步到服务器：
+
+- `PandaWiki/web/app/public`
+- `PandaWiki/web/admin/server.conf`
+- `PandaWiki/web/admin/nginx.conf`
+- 你实际修改过的前端源码
+
+解压完成后检查：
+
+```bash
+ls -lah /opt/mindweave/PandaWiki/web/app/dist
+ls -lah /opt/mindweave/PandaWiki/web/admin/dist
+```
+
 ## 10. 编译后端 API 到根目录 `bin/api`
 
 当前 compose 中，`api` 实际执行的是：
 
 ```yaml
 entrypoint: ["/custom/api"]
-volumes:
+volumes:  
   - ./bin/api:/custom/api:ro
 ```
 
@@ -492,11 +559,13 @@ git pull
 docker run --rm \
   -u "$(id -u):$(id -g)" \
   -e HOME=/tmp \
-  -v /opt/mindweave/PandaWiki/web:/workspace \
-  -w /workspace \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
   node:22-bullseye \
-  bash -lc "corepack enable && corepack prepare pnpm@10.12.1 --activate && pnpm install && pnpm build"
+  bash -lc "corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-admin build && corepack pnpm@10.12.1 --filter panda-wiki-app build"
 ```
+
+如果服务器配置较低，这一步也可以改成本地构建后上传 `PandaWiki/web/admin/dist` 和 `PandaWiki/web/app/dist`，具体参考第 9.1 节。
 
 ### 16.3 如果改了后端 API
 
@@ -552,10 +621,10 @@ cd /opt/mindweave
 docker run --rm \
   -u "$(id -u):$(id -g)" \
   -e HOME=/tmp \
-  -v /opt/mindweave/PandaWiki/web:/workspace \
-  -w /workspace \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
   node:22-bullseye \
-  bash -lc "corepack enable && corepack prepare pnpm@10.12.1 --activate && pnpm install && pnpm --filter panda-wiki-app build"
+  bash -lc "corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-app build"
 
 docker compose \
   --env-file .env \
@@ -747,10 +816,10 @@ mkdir -p \
 docker run --rm \
   -u "$(id -u):$(id -g)" \
   -e HOME=/tmp \
-  -v /opt/mindweave/PandaWiki/web:/workspace \
-  -w /workspace \
+  -v /opt/mindweave:/workspace \
+  -w /workspace/PandaWiki/web \
   node:22-bullseye \
-  bash -lc "corepack enable && corepack prepare pnpm@10.12.1 --activate && pnpm install && pnpm build"
+  bash -lc "corepack pnpm@10.12.1 install --frozen-lockfile && corepack pnpm@10.12.1 --filter panda-wiki-admin build && corepack pnpm@10.12.1 --filter panda-wiki-app build"
 
 docker run --rm \
   -u "$(id -u):$(id -g)" \
