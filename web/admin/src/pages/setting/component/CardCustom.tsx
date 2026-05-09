@@ -99,26 +99,6 @@ const CardCustom = ({ refresh, info }: CardCustomProps) => {
           )}
         />
       </FormItem>
-
-      <FormItem label='页面说明'>
-        <Box
-          sx={theme => ({
-            maxWidth: 620,
-            px: 1.5,
-            py: 1.25,
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider',
-            color: 'text.secondary',
-            bgcolor: theme.palette.background.paper,
-            lineHeight: 1.8,
-            fontSize: 14,
-          })}
-        >
-          欢迎页已改为固定式落地页布局，当前设置仅保留“文档页 /
-          欢迎页”默认首页切换，不再提供拖拽装修入口。
-        </Box>
-      </FormItem>
     </SettingCardItem>
   );
 };
