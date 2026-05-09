@@ -53,6 +53,14 @@ export const SCRAPE_TYPES: readonly ConstsCrawlerSource[] = [
   ConstsCrawlerSource.CrawlerSourceSitemap,
 ] as const;
 
+export const CREATE_DOC_IMPORT_TYPES: readonly ConstsCrawlerSource[] = [
+  ConstsCrawlerSource.CrawlerSourceFile,
+  ConstsCrawlerSource.CrawlerSourceUrl,
+  ConstsCrawlerSource.CrawlerSourceRSS,
+  ConstsCrawlerSource.CrawlerSourceNotion,
+  ConstsCrawlerSource.CrawlerSourceYuque,
+] as const;
+
 // 类型配置
 export const TYPE_CONFIG: Record<
   ConstsCrawlerSource,
@@ -71,12 +79,12 @@ export const TYPE_CONFIG: Record<
       'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%E7%A6%BB%E7%BA%BF%E6%96%87%E4%BB%B6%E5%AF%BC%E5%85%A5',
   },
   [ConstsCrawlerSource.CrawlerSourceUrl]: {
-    label: '通过 URL 导入',
+    label: '通过URL导入',
     usage:
       'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%20URL%20%E5%AF%BC%E5%85%A5',
   },
   [ConstsCrawlerSource.CrawlerSourceRSS]: {
-    label: '通过 RSS 导入',
+    label: '通过RSS导入',
     usage:
       'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%20RSS%20%E5%AF%BC%E5%85%A5',
   },
@@ -86,7 +94,7 @@ export const TYPE_CONFIG: Record<
       'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%20SiteMap%20%E5%AF%BC%E5%85%A5',
   },
   [ConstsCrawlerSource.CrawlerSourceNotion]: {
-    label: '通过 Notion 导入',
+    label: '通过Notion导入',
     usage:
       'https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%20Notion%20%E5%AF%BC%E5%85%A5',
   },
