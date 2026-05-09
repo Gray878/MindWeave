@@ -66,7 +66,7 @@ const MENUS: MenuItem[] = [
     ],
   },
   {
-    label: '\u667a\u80fd\u95ee\u7b54',
+    label: '\u95ee\u7b54\u8bb0\u5f55',
     value: '/conversation',
     pathname: 'conversation',
     icon: IconDuihualishi1,
