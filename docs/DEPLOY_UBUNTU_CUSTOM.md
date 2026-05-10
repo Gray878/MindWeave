@@ -524,6 +524,11 @@ docker compose \
   -f docker-compose.source.yml \
   up -d --build app nginx
 
+until [ "$(docker inspect -f '{{.State.Health.Status}}' mindweave-neo4j 2>/dev/null)" = "healthy" ]; do
+  docker compose ps neo4j
+  sleep 5
+done
+
 docker compose restart api
 ```
 
@@ -600,6 +605,11 @@ docker compose \
   -f docker-compose.yml \
   -f docker-compose.source.yml \
   up -d --build app nginx
+
+until [ "$(docker inspect -f '{{.State.Health.Status}}' mindweave-neo4j 2>/dev/null)" = "healthy" ]; do
+  docker compose ps neo4j
+  sleep 5
+done
 
 docker compose restart api
 
@@ -886,17 +896,56 @@ ls -lah /opt/mindweave/data/nginx/ssl
 如果证书没生成，可以先重启 `api` 再重启 `nginx`：
 
 ```bash
+until [ "$(docker inspect -f '{{.State.Health.Status}}' mindweave-neo4j 2>/dev/null)" = "healthy" ]; do
+  docker compose ps neo4j
+  sleep 5
+done
+
 docker compose restart api
 sleep 5
 docker compose restart nginx
 ```
 
-### 18.4 `app` 镜像构建失败
+### 18.4 `api` 日志出现 Neo4j `connection refused`
+
+首次启动或整套重启时，Neo4j 容器启动不等于 Bolt 端口已经可连接。  
+如果看到类似下面的日志，一般是 `api` 比 Neo4j 更早启动了：
+
+```text
+failed to verify neo4j connectivity: ConnectivityError: dial tcp ...:7687: connect: connection refused
+```
+
+先等 Neo4j 健康检查通过，再重启 `api`：
+
+```bash
+cd /opt/mindweave
+
+until [ "$(docker inspect -f '{{.State.Health.Status}}' mindweave-neo4j 2>/dev/null)" = "healthy" ]; do
+  docker compose ps neo4j
+  sleep 5
+done
+
+docker compose restart api
+docker compose logs --tail=50 api
+```
+
+### 18.5 `nginx` 返回 400
+
+`2443` 是 HTTPS 端口。  
+如果日志里请求来源是 `http://<服务器IP>:2443/`，浏览器实际向 HTTPS 端口发送了 HTTP 请求，Nginx 会返回 400。
+
+正确访问地址：
+
+```text
+https://<服务器IP>:2443
+```
+
+### 18.6 `app` 镜像构建失败
 
 大概率是 `PandaWiki/web/app/dist` 不完整。  
 重新执行第 9 节的前端产物构建，再重新 `docker compose ... up -d --build app`。
 
-### 18.5 `consumer` 没有使用你的新代码
+### 18.7 `consumer` 没有使用你的新代码
 
 如果你修改的是后端共享代码，但只重启了 `api`，那么 `consumer` 仍然可能是旧镜像。  
 这时要重新构建：

@@ -34,6 +34,7 @@ import {
 import {
   convertLocalModelToUIModel,
   modelService,
+  normalizeModelBaseUrl,
 } from '@/services/modelService';
 import AutoModelConfig, { AutoModelConfigRef } from './AutoModelConfig';
 
@@ -132,12 +133,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
       if (!res) {
         return;
       }
+      const processedBaseUrl = getProcessedUrl(
+        value.base_url,
+        value.provider,
+        value.model_type,
+      );
       const currentModelData = {
         provider: value.provider,
         model: value.model_name,
         api_key: value.api_key,
         api_header: value.api_header,
-        base_url: value.base_url,
+        base_url: processedBaseUrl,
         api_version: value.api_version,
         type: value.model_type,
       };
@@ -202,9 +208,13 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
 
     const getProcessedUrl = (
       baseUrl: string,
-      provider: keyof typeof ModelProvider,
+      provider: string,
+      modelType: string,
     ) => {
-      if (!ModelProvider[provider]?.urlWrite) {
+      baseUrl = normalizeModelBaseUrl(provider, modelType, baseUrl);
+      const providerConfig =
+        ModelProvider[provider as keyof typeof ModelProvider];
+      if (!providerConfig?.urlWrite) {
         return baseUrl;
       }
       if (baseUrl.endsWith('#')) {
@@ -234,8 +244,11 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
           model_type: value.model_type,
           model_name: value.model_name,
           api_key: value.api_key,
-          // @ts-expect-error 忽略类型错误
-          base_url: getProcessedUrl(value.base_url, value.provider),
+          base_url: getProcessedUrl(
+            value.base_url,
+            value.provider,
+            value.model_type,
+          ),
           api_version: value.api_version,
 
           provider: value.provider,
@@ -268,8 +281,11 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
           .updateModel({
             api_key: value.api_key,
             model_type: value.model_type,
-            // @ts-expect-error 忽略类型错误
-            base_url: getProcessedUrl(value.base_url, value.provider),
+            base_url: getProcessedUrl(
+              value.base_url,
+              value.provider,
+              value.model_type,
+            ),
             model_name: value.model_name,
             api_header: value.api_header || header,
             api_version: value.api_version,
@@ -301,8 +317,11 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
           .createModel({
             model_type: value.model_type,
             api_key: value.api_key,
-            // @ts-expect-error 忽略类型错误
-            base_url: getProcessedUrl(value.base_url, value.provider),
+            base_url: getProcessedUrl(
+              value.base_url,
+              value.provider,
+              value.model_type,
+            ),
             model_name: value.model_name,
             api_header: value.api_header || header,
             provider: value.provider as Exclude<typeof value.provider, 'Other'>,

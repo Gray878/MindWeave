@@ -16,6 +16,14 @@ import type {
   ModelListItem as UIModelListItem,
   UpdateModelReq as UIUpdateModelData,
 } from '@ctzhian/modelkit';
+
+const BAILIAN_COMPAT_BASE_URL =
+  'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const BAILIAN_RAW_EMBEDDING_URL =
+  'https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding';
+const BAILIAN_RAW_RERANK_URL =
+  'https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank';
+
 const modelkitModelTypeToLocal = (
   modelType: string,
 ): 'chat' | 'embedding' | 'rerank' | 'analysis' | 'analysis-vl' => {
@@ -27,6 +35,48 @@ const modelkitModelTypeToLocal = (
   if (modelType === 'reranker') return 'rerank';
   if (modelType === 'embedding') return 'embedding';
   return 'chat';
+};
+
+const sanitizeBaiLianBaseUrl = (baseUrl: string) =>
+  baseUrl.trim().replace(/#+$/, '').replace(/\/$/, '');
+
+const normalizeBaiLianBaseUrl = (modelType: string, baseUrl: string) => {
+  const localType = modelkitModelTypeToLocal(modelType);
+  const sanitizedBaseUrl = sanitizeBaiLianBaseUrl(baseUrl);
+
+  if (localType === 'embedding') {
+    if (
+      !sanitizedBaseUrl ||
+      sanitizedBaseUrl === BAILIAN_RAW_EMBEDDING_URL ||
+      sanitizedBaseUrl === 'https://dashscope.aliyuncs.com/compatible-api/v1'
+    ) {
+      return BAILIAN_COMPAT_BASE_URL;
+    }
+  }
+
+  if (localType === 'rerank') {
+    if (
+      !sanitizedBaseUrl ||
+      sanitizedBaseUrl === BAILIAN_COMPAT_BASE_URL ||
+      sanitizedBaseUrl === 'https://dashscope.aliyuncs.com/compatible-api/v1'
+    ) {
+      return BAILIAN_RAW_RERANK_URL;
+    }
+  }
+
+  return sanitizedBaseUrl;
+};
+
+export const normalizeModelBaseUrl = (
+  provider: string,
+  modelType: string,
+  baseUrl: string,
+) => {
+  if (provider !== 'BaiLian') {
+    return baseUrl || '';
+  }
+
+  return normalizeBaiLianBaseUrl(modelType, baseUrl || '');
 };
 
 // 转换本地模型数据为 UI 模型数据
@@ -57,7 +107,11 @@ export const convertUICreateToLocalCreate = (
     model: uiModel.model_name || '',
     provider: uiModel.provider as keyof typeof ModelProvider,
     type: modelkitModelTypeToLocal(uiModel.model_type || ''),
-    base_url: uiModel.base_url || '',
+    base_url: normalizeModelBaseUrl(
+      uiModel.provider || '',
+      uiModel.model_type || '',
+      uiModel.base_url || '',
+    ),
     api_key: uiModel.api_key || '',
     api_header: uiModel.api_header || '',
     parameters: uiModel.param,
@@ -72,7 +126,11 @@ export const convertUIUpdateToLocalUpdate = (
     id: uiModel.id || '',
     model: uiModel.model_name || '',
     provider: uiModel.provider as keyof typeof ModelProvider,
-    base_url: uiModel.base_url || '',
+    base_url: normalizeModelBaseUrl(
+      uiModel.provider || '',
+      uiModel.model_type || '',
+      uiModel.base_url || '',
+    ),
     api_key: uiModel.api_key || '',
     api_header: uiModel.api_header || '',
     api_version: uiModel.api_version || '',
@@ -89,7 +147,11 @@ export const convertUICheckToLocalCheck = (
     model: uiCheck.model_name || '',
     provider: uiCheck.provider as keyof typeof ModelProvider,
     type: modelkitModelTypeToLocal(uiCheck.model_type || ''),
-    base_url: uiCheck.base_url || '',
+    base_url: normalizeModelBaseUrl(
+      uiCheck.provider || '',
+      uiCheck.model_type || '',
+      uiCheck.base_url || '',
+    ),
     api_key: uiCheck.api_key || '',
     api_header: uiCheck.api_header || '',
     api_version: uiCheck.api_version || '',
@@ -104,7 +166,11 @@ const convertUIGetModelNameToLocal = (
   return {
     provider: uiData.provider as keyof typeof ModelProvider,
     type: modelkitModelTypeToLocal(uiData.model_type || ''),
-    base_url: uiData.base_url || '',
+    base_url: normalizeModelBaseUrl(
+      uiData.provider || '',
+      uiData.model_type || '',
+      uiData.base_url || '',
+    ),
     api_key: uiData.api_key || '',
     api_header: uiData.api_header || '',
   };
@@ -126,6 +192,9 @@ export const modelService: IModelService = {
 
   async listModel(data: UIGetModelNameData) {
     const localData = convertUIGetModelNameToLocal(data);
+    if (localData.provider === 'BaiLian' && localData.type === 'rerank') {
+      return { models: [], error: '' };
+    }
     const result = await getModelNameList(localData);
 
     const models: UIModelListItem[] = result.models
