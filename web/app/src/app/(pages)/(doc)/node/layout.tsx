@@ -1,7 +1,6 @@
 'use client';
 
-import { FooterSetting } from '@/assets/type';
-import { FooterProvider } from '@/components/footer';
+import { LandingFooter } from '@/components/footer';
 import Header from '@/components/header';
 import { useStore } from '@/provider';
 import Catalog from '@/views/node/Catalog';
@@ -48,18 +47,12 @@ const PCLayout = ({ children }: { children: React.ReactNode }) => {
         </Stack>
       )}
 
-      <FooterProvider isDocPage={true} />
+      <LandingFooter />
     </Stack>
   );
 };
 
-const MobileLayout = ({
-  children,
-  footerSetting,
-}: {
-  children?: React.ReactNode;
-  footerSetting?: FooterSetting | null;
-}) => {
+const MobileLayout = ({ children }: { children?: React.ReactNode }) => {
   const { tree } = useStore();
   return (
     <Stack
@@ -100,27 +93,21 @@ const MobileLayout = ({
       <Box
         sx={{
           mt: 5,
-          bgcolor: 'background.paper3',
-          ...(footerSetting?.footer_style === 'complex' && {
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }),
         }}
       >
-        <FooterProvider />
+        <LandingFooter />
       </Box>
     </Stack>
   );
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { mobile, kbDetail } = useStore();
-  const footerSetting = kbDetail?.settings?.footer_settings;
+  const { mobile } = useStore();
 
   return (
     <>
       {mobile ? (
-        <MobileLayout footerSetting={footerSetting}>{children}</MobileLayout>
+        <MobileLayout>{children}</MobileLayout>
       ) : (
         <PCLayout>{children}</PCLayout>
       )}

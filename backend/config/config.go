@@ -19,6 +19,7 @@ type Config struct {
 	Auth          AuthConfig   `mapstructure:"auth"`
 	S3            S3Config     `mapstructure:"s3"`
 	Sentry        SentryConfig `mapstructure:"sentry"`
+	Neo4j         Neo4jConfig  `mapstructure:"neo4j"`
 	CaddyAPI      string       `mapstructure:"caddy_api"`
 	SubnetPrefix  string       `mapstructure:"subnet_prefix"`
 }
@@ -81,6 +82,12 @@ type SentryConfig struct {
 	DSN     string `mapstructure:"dsn"`
 }
 
+type Neo4jConfig struct {
+	URI      string `mapstructure:"uri"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+}
+
 func NewConfig() (*Config, error) {
 	// set default config
 	SUBNET_PREFIX := os.Getenv("SUBNET_PREFIX")
@@ -129,6 +136,11 @@ func NewConfig() (*Config, error) {
 		Sentry: SentryConfig{
 			Enabled: true,
 			DSN:     "https://2a4cff1ae04b624ffc72663f523024ff@sentry.baizhi.cloud/4",
+		},
+		Neo4j: Neo4jConfig{
+			URI:      fmt.Sprintf("bolt://%s.19:7687", SUBNET_PREFIX),
+			Username: "neo4j",
+			Password: "",
 		},
 		CaddyAPI:     "/app/run/caddy-admin.sock",
 		SubnetPrefix: "169.254.15",
@@ -211,6 +223,19 @@ func overrideWithEnv(c *Config) {
 	// caddy api
 	if env := os.Getenv("CADDY_API"); env != "" {
 		c.CaddyAPI = env
+	}
+	// neo4j
+	if env := os.Getenv("NEO4J_URI"); env != "" {
+		c.Neo4j.URI = env
+	}
+	if env := os.Getenv("NEO4J_USERNAME"); env != "" {
+		c.Neo4j.Username = env
+	}
+	if env := os.Getenv("NEO4J_PASSWORD"); env != "" {
+		c.Neo4j.Password = env
+	}
+	if env := os.Getenv("NEO4J_URI"); env != "" {
+		c.Neo4j.URI = env
 	}
 	// log level
 	if env := os.Getenv("LOG_LEVEL"); env != "" {

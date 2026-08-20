@@ -148,7 +148,6 @@ const ApiToken = () => {
   return (
     <SettingCardItem
       title='API Token'
-      permission={BUSINESS_VERSION_PERMISSION}
       extra={
         <Stack direction={'row'} alignItems={'center'}>
           <Button
@@ -254,7 +253,7 @@ const ApiToken = () => {
                   kbDetail?.perm !==
                   ConstsUserKBPermission.UserKBPermissionFullControl
                     ? '权限不足'
-                    : '商业版可用'
+                    : '开发中'
                 }
                 placement='top'
                 arrow
@@ -454,7 +453,7 @@ const CardKB = () => {
       }}
     >
       <SettingCardItem
-        title='Wiki 站管理员'
+        title='知识库管理员'
         extra={
           <Button
             size='small'
@@ -462,7 +461,7 @@ const CardKB = () => {
             onClick={() => setAddOpen(true)}
             sx={{ color: 'primary.main' }}
           >
-            添加 Wiki 站管理员
+            添加知识库管理员
           </Button>
         }
       >
@@ -534,9 +533,7 @@ const CardKB = () => {
 
                 <Tooltip
                   title={
-                    it.role === 'admin'
-                      ? '超级管理员不可被修改权限'
-                      : '专业版可用'
+                    it.role === 'admin' ? '超级管理员不可被修改权限' : '开发中'
                   }
                   placement='top'
                   arrow

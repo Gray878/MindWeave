@@ -76,7 +76,14 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 }));
 
 const QaModal: React.FC<QaModalProps> = () => {
-  const { qaModalOpen, setQaModalOpen, kbDetail, mobile } = useStore();
+  const {
+    qaModalOpen,
+    setQaModalOpen,
+    qaModalMode,
+    setQaModalMode,
+    kbDetail,
+    mobile,
+  } = useStore();
   const [searchMode, setSearchMode] = useState<'chat' | 'search'>('chat');
   const inputRef = useRef<HTMLInputElement>(null);
   const aiQaInputRef = useRef<HTMLInputElement>(null);
@@ -96,37 +103,44 @@ const QaModal: React.FC<QaModalProps> = () => {
     const bannerConfig = kbDetail?.settings?.web_app_landing_configs?.find(
       item => item.type === 'banner',
     );
-    return bannerConfig?.banner_config?.hot_search || [];
+    return (
+      bannerConfig?.banner_config?.hot_search ||
+      kbDetail?.settings?.recommend_questions ||
+      []
+    );
   }, [kbDetail]);
 
   // modal打开时自动聚焦
   useEffect(() => {
     if (qaModalOpen) {
+      setSearchMode(qaModalMode || 'chat');
       setTimeout(() => {
-        if (searchMode === 'chat') {
+        if ((qaModalMode || 'chat') === 'chat') {
           aiQaInputRef.current?.querySelector('textarea')?.focus();
         } else {
           inputRef.current?.querySelector('input')?.focus();
         }
       }, 100);
     }
-  }, [qaModalOpen, searchMode]);
+  }, [qaModalMode, qaModalOpen]);
 
   useEffect(() => {
     if (!qaModalOpen) {
       setTimeout(() => {
         setSearchMode('chat');
+        setQaModalMode?.('chat');
       }, 300);
     }
-  }, [qaModalOpen]);
+  }, [qaModalOpen, setQaModalMode]);
 
   useEffect(() => {
     const cid = searchParams.get('cid');
     const ask = searchParams.get('ask');
     if (cid || ask) {
+      setQaModalMode?.('chat');
       setQaModalOpen?.(true);
     }
-  }, []);
+  }, [searchParams, setQaModalMode, setQaModalOpen]);
 
   return (
     <Modal
@@ -170,6 +184,7 @@ const QaModal: React.FC<QaModalProps> = () => {
             value={searchMode}
             onChange={(_, value) => {
               setSearchMode(value as 'chat' | 'search');
+              setQaModalMode?.(value as 'chat' | 'search');
             }}
             variant='scrollable'
             scrollButtons={false}
@@ -270,7 +285,7 @@ const QaModal: React.FC<QaModalProps> = () => {
               {!kbDetail?.settings?.conversation_setting
                 ?.copyright_hide_enabled &&
                 (kbDetail?.settings?.conversation_setting?.copyright_info ||
-                  '本网站由 PandaWiki 提供技术支持')}
+                  '本网站由 MindWeave 提供技术支持')}
             </Box>
           </Typography>
         </Box>

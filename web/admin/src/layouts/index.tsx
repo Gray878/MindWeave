@@ -1,7 +1,7 @@
 import { Box } from '@mui/material';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { SIDEBAR_LAYOUT_OFFSET } from '@/components/Sidebar';
 import KBCreate from '@/components/KB/KBCreate';
 import CreateWikiModal from '@/components/CreateWikiModal';
 import { getApiV1ModelList } from '@/request/Model';
@@ -102,9 +102,9 @@ export const MainLayout = () => {
         <Box
           sx={{
             pr: 2,
-            width: 'calc(100% - 170px)',
-            pt: '64px',
-            ml: '170px',
+            width: `calc(100% - ${SIDEBAR_LAYOUT_OFFSET}px)`,
+            pt: '100px',
+            ml: `${SIDEBAR_LAYOUT_OFFSET}px`,
             color: 'text.primary',
           }}
         >

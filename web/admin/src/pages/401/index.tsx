@@ -41,7 +41,7 @@ const Index = () => {
         你的账号没有访问相关Wiki站点的权限。如需访问，请联系管理员为你开通。
       </Typography>
       <StyledActions>
-        <Button variant='contained' onClick={() => navigate('/')}>
+        <Button variant='contained' onClick={() => navigate('/stat')}>
           返回首页
         </Button>
         {/* <Button variant='outlined' onClick={() => navigate('/login')}>

@@ -1,9 +1,7 @@
 'use client';
 import { useMemo } from 'react';
 import Home from '@/views/home';
-import { WelcomeFooter } from '@/components/footer';
 import { ThemeProvider } from '@ctzhian/ui';
-import { WelcomeHeader } from '@/components/header';
 import { Stack, createTheme } from '@mui/material';
 import { createComponentStyleOverrides } from '@/theme';
 import { useStore } from '@/provider';
@@ -36,11 +34,9 @@ const HomePage = () => {
         justifyContent='space-between'
         sx={{ minHeight: '100vh', bgcolor: 'background.default' }}
       >
-        <WelcomeHeader />
         <Stack sx={{ flex: 1 }}>
           <Home />
         </Stack>
-        <WelcomeFooter />
       </Stack>
     </ThemeProvider>
   );

@@ -1,124 +1,155 @@
 <p align="center">
-  <img src="/images/banner.png" width="400" />
+  <img src="./web/admin/public/images/init/brand_logo.png" alt="MindWeave Logo" width="88" />
+</p>
+
+<h1 align="center">MindWeave</h1>
+
+<p align="center">
+  基于多模态内容理解、RAG 与知识图谱的智能知识库问答系统
 </p>
 
 <p align="center">
-  <a target="_blank" href="https://ly.safepoint.cloud/Br48PoX">📖 官方网站</a> &nbsp; | &nbsp;
-  <a target="_blank" href="/images/wechat.png">🙋‍♂️ 微信交流群</a>
+  <a href="./docs/DEPLOY_LOCAL_DOCKER.md">本地部署</a> ·
+  <a href="./docs/DEPLOY_UBUNTU_CUSTOM.md">Ubuntu 部署</a> ·
+  <a href="./docs/MindWeave_FAQ.md">常见问题</a> ·
+  <a href="./PROJECT_STRUCTURE.md">项目结构</a>
 </p>
 
-## 👋 项目介绍
+## 项目简介
 
-PandaWiki 是一款 AI 大模型驱动的**开源知识库搭建系统**，帮助你快速构建智能化的 **产品文档、技术文档、FAQ、博客系统**，借助大模型的力量为你提供 **AI 创作、AI 问答、AI 搜索** 等能力。
+MindWeave 是一套以知识库为业务边界的知识生产、治理、发布与问答平台。系统支持从文件、网页和第三方内容平台导入知识，通过 RAG 完成语义检索与流式问答，并将知识库、目录、文档和用户等对象同步至 Neo4j，提供 2D/3D 知识图谱探索能力。
 
-<p align="center">
-  <img src="/images/setup.png" width="800" />
-</p>
+项目采用 Go API、异步 Consumer 与双前端架构：管理端用于内容和模型配置，门户端面向最终用户提供文档浏览与 AI 问答；PostgreSQL、Redis、MinIO、Qdrant、RAGLite、Neo4j 和 NATS 共同提供数据与基础设施能力。
 
-## ⚡️ 界面展示
+![MindWeave 模型配置界面](./images/3.png)
 
-| PandaWiki 控制台                                 | Wiki 网站前台                                    |
-| ------------------------------------------------ | ------------------------------------------------ |
-| <img src="/images/screenshot-1.png" width=370 /> | <img src="/images/screenshot-2.png" width=370 /> |
-| <img src="/images/screenshot-3.png" width=370 /> | <img src="/images/screenshot-4.png" width=370 /> |
+## 核心能力
 
-## 🔥 功能与特色
+- **多源知识接入**：支持 PDF、Word、Markdown、图片 OCR、网页 URL、RSS、Sitemap，以及 Notion、语雀、飞书文档等来源。
+- **RAG 检索增强问答**：文档发布后自动切片、向量化和索引；问答链路包含问题改写、语义召回、重排序、证据引用与 SSE 流式输出。
+- **多模态模型配置**：可分别配置对话、向量、重排序、文档分析和图像分析模型。
+- **知识图谱**：将核心业务对象同步至 Neo4j，基于内容相似度构建文档关系，并提供 2D/3D 交互式可视化。
+- **可靠的图谱同步**：异步同步任务支持退避重试、死信记录和按知识库手动重放。
+- **多渠道发布**：支持知识库门户、网页挂件、OpenAI 兼容接口、MCP，以及钉钉、飞书、企业微信等机器人渠道。
+- **版本化发布**：区分编辑态与服务态，以发布快照作为检索和问答对象，便于追溯内容来源。
 
-- AI 驱动智能化：AI 辅助创作、AI 辅助问答、AI 辅助搜索。
-- 强大的富文本编辑能力：兼容 Markdown 和 HTML，支持导出为 word、pdf、markdown 等多种格式。
-- 轻松与第三方应用进行集成：支持做成网页挂件挂在其他网站上，支持做成钉钉、飞书、企业微信等聊天机器人。
-- 通过第三方来源导入内容：根据网页 URL 导入、通过网站 Sitemap 导入、通过 RSS 订阅、通过离线文件导入等。
+## 系统架构
 
-## 🚀 上手指南
+```mermaid
+flowchart LR
+    U[管理端 / 知识库门户 / Bot / MCP] --> API[Go + Echo API]
+    API --> PG[(PostgreSQL)]
+    API --> Redis[(Redis)]
+    API --> MinIO[(MinIO)]
+    API --> NATS[NATS]
+    NATS --> Consumer[异步 Consumer]
+    API --> RAG[RAGLite]
+    Consumer --> RAG
+    RAG --> Qdrant[(Qdrant)]
+    API --> Neo4j[(Neo4j)]
+    Consumer --> Neo4j
+```
 
-### 安装 PandaWiki
+## 技术栈
 
-你需要一台支持 Docker 20.x 以上版本的 Linux 系统来安装 PandaWiki。
+| 层级       | 主要技术                                         |
+| ---------- | ------------------------------------------------ |
+| 后端       | Go 1.24、Echo、GORM、JWT                         |
+| 管理端     | React 19、TypeScript、Vite 6、MUI、Redux Toolkit |
+| 门户端     | Next.js 16、React 19、TypeScript、MUI            |
+| 内容与检索 | RAGLite、Qdrant、MinIO                           |
+| 数据与消息 | PostgreSQL、Redis、NATS                          |
+| 知识图谱   | Neo4j、Graphology、Sigma.js、Three.js            |
+| 部署       | Docker Compose、Caddy、Nginx                     |
 
-使用 root 权限登录你的服务器，然后执行以下命令。
+## 目录结构
+
+```text
+MindWeave/
+├── backend/              # Go API、Consumer、迁移与领域逻辑
+├── web/
+│   ├── admin/            # React/Vite 管理端
+│   ├── app/              # Next.js 知识库门户
+│   └── packages/         # 前端共享组件与主题
+├── sdk/rag/              # RAG SDK
+├── docs/                 # 部署、设计与项目文档
+├── images/               # README 图片资源
+└── README.md
+```
+
+更完整的说明请查看 [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)。
+
+## 快速开始
+
+### 环境要求
+
+- Git
+- Node.js 22（推荐）与 Corepack
+- pnpm 10.12.1
+- Go 1.24.3（开发后端时需要）
+- Docker 与 Docker Compose v2（运行完整服务时需要）
+
+### 获取源码
 
 ```bash
-bash -c "$(curl -fsSLk https://release.baizhi.cloud/panda-wiki/manager.sh)"
+git clone https://github.com/Gray878/MindWeave.git
+cd MindWeave
 ```
 
-根据命令提示的选项进行安装，命令执行过程将会持续几分钟，请耐心等待。
+### 启动前端开发环境
 
-> 关于安装与部署的更多细节请参考 [安装 PandaWiki](https://pandawiki.docs.baizhi.cloud/node/01971602-bb4e-7c90-99df-6d3c38cfd6d5)。
+前端开发服务器默认将 API 请求代理到 `http://localhost:8000`。请先启动后端服务，或修改 `web/admin/.env` 与 `web/app/.env` 中的目标地址。
 
-### 登录 PandaWiki
-
-在上一步中，安装命令执行结束后，你的终端会输出以下内容。
-
-```
-SUCCESS  控制台信息:
-SUCCESS    访问地址(内网): http://*.*.*.*:2443
-SUCCESS    访问地址(外网): http://*.*.*.*:2443
-SUCCESS    用户名: admin
-SUCCESS    密码: **********************
+```bash
+cd web
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-使用浏览器打开上述内容中的 “访问地址”，你将看到 PandaWiki 的控制台登录入口，使用上述内容中的 “用户名” 和 “密码” 登录即可。
+默认开发地址：
 
-### 配置 AI 模型
+- 管理端：`http://localhost:5173`
+- 知识库门户：`http://localhost:3010`
 
-> PandaWiki 是由 AI 大模型驱动的 Wiki 系统，在未配置大模型的情况下 AI 创作、AI 问答、AI 搜索 等功能无法正常使用。
-> 
-首次登录时会提示需要先配置 AI 模型，可自行选择一键配置或手动配置。
+构建全部前端应用：
 
-<div align="center">
-  <img src="/images/model-config-1.png" width="800" />
-  <p><em>一键自动配置 AI 模型</em></p>
+```bash
+cd web
+pnpm build
+```
 
-  <img src="/images/model-config-2.png" width="800" />
-  <p><em>手动自定义配置 AI 模型</em></p>
-</div>
+运行后端测试：
 
+```bash
+cd backend
+go test ./...
+```
 
+## 部署
 
-> 推荐使用 [百智云模型广场](https://baizhi.cloud/) 快速接入 AI 模型，注册即可获赠 5 元的模型使用额度。
-> 关于大模型的更多配置细节请参考 [接入 AI 模型](https://pandawiki.docs.baizhi.cloud/node/01971616-811c-70e1-82d9-706a202b8498)。
+本项目的定制部署采用“两层目录”：Git 仓库保存于部署根目录下的 `PandaWiki/`，而 `.env`、Compose 文件、运行数据和编译后的 API 位于外层部署根目录。请不要直接套用普通单仓库 Compose 项目的目录假设。
 
-### 创建知识库
+- macOS / Windows Docker Desktop：[本地 Docker 部署](./docs/DEPLOY_LOCAL_DOCKER.md)
+- Ubuntu 22.04 / 24.04：[Ubuntu 云服务器部署](./docs/DEPLOY_UBUNTU_CUSTOM.md)
+- 后端单独部署：[后端部署说明](./docs/deploy-backend.md)
 
-“知识库” 是一组文档的集合，PandaWiki 将会根据知识库中的文档，为不同的知识库分别创建 “Wiki 网站”。
-<img src="/images/createkb.png" width="800" />
+生产环境建议至少准备 4 核 CPU、8 GB 内存和 40 GB 可用磁盘；文档量较大或同时运行 Neo4j、Qdrant 时，建议使用 8 核 16 GB 及以上配置。
 
-### 💪 开始使用
+## 使用流程
 
-如果你顺利完成了以上步骤，那么恭喜你，属于你的 PandaWiki 搭建成功，你可以：
+1. 登录管理端并创建知识库。
+2. 配置对话、向量、重排序、文档分析等模型。
+3. 导入文档，整理目录并发布内容。
+4. 在门户中验证检索与 AI 问答效果。
+5. 在图谱页面查看实体关系，并按需配置机器人、OpenAI API 或 MCP 渠道。
 
-- 访问 **控制台** 来管理你的知识库并上传文档等待学习成功
-- 访问 **Wiki 网站** 使用知识库并测试AI问答效果
-<img src="/images/AI-QA.png" width="700" />
+遇到模型配置、端口映射、图谱同步或部署问题时，请先查看 [MindWeave FAQ](./docs/MindWeave_FAQ.md)。
 
-### 💬 遇到问题
+## 参与贡献
 
-如在使用产品过程中遇到问题，可通过以下方式获取帮助：
-- 📘查阅官方文档：[常见问题](https://pandawiki.docs.baizhi.cloud/node/019b4952-4ed3-7514-ba57-c93a8ca13608)，更多内容请参考文档目录。
-- 🤖不想翻文档？试试 [AI 问答](https://pandawiki.docs.baizhi.cloud/node/0197160c-782c-74ad-a4b7-857dae148f84)，快速获取答案。
-- 🤝加入社区：扫码加入下方企业微信群，与更多用户及官方人员交流经验、获得帮助。
+欢迎通过 Issue 或 Pull Request 参与改进。提交代码前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)；安全问题请按照 [SECURITY.md](./SECURITY.md) 中的方式反馈。
 
+## 开源许可
 
-## 社区交流
-
-欢迎加入我们的微信群进行交流。
-
-<img src="/images/wechat.png" width="300" />
-
-## 🙋‍♂️ 贡献
-
-欢迎提交 [Pull Request](https://github.com/chaitin/PandaWiki/pulls) 或创建 [Issue](https://github.com/chaitin/PandaWiki/issues) 来帮助改进项目。
-
-## 📝 许可证
-
-本项目采用 GNU Affero General Public License v3.0 (AGPL-3.0) 许可证。这意味着：
-
-- 你可以自由使用、修改和分发本软件
-- 你必须以相同的许可证开源你的修改
-- 如果你通过网络提供服务，也必须开源你的代码
-- 商业使用需要遵守相同的开源要求
-
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=chaitin/PandaWiki&type=Date)](https://www.star-history.com/#chaitin/PandaWiki&Date)
+本项目基于开源项目二次开发，并使用 [GNU Affero General Public License v3.0](./LICENSE)。分发修改版本或通过网络提供服务时，请遵守 AGPL-3.0 的源代码公开要求。

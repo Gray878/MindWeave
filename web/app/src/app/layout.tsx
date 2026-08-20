@@ -3,6 +3,7 @@ import StoreProvider from '@/provider';
 import { ThemeStoreProvider } from '@/provider/themeStore';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareProV1AuthInfo } from '@/request/pro/ShareAuth';
+import { BrandName } from '@/constant';
 import Script from 'next/script';
 import { Box } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
@@ -44,14 +45,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const icon = getImagePath(kbDetail?.settings?.icon || '', basePath);
   return {
     metadataBase: new URL(process.env.TARGET || ''),
-    title: kbDetail?.settings?.title || 'Panda-Wiki',
+    title: BrandName,
+    applicationName: BrandName,
     description: kbDetail?.settings?.desc || '',
     keywords: kbDetail?.settings?.keyword || '',
     icons: {
       icon: icon || `${basePath}/favicon.png`,
     },
     openGraph: {
-      title: kbDetail?.settings?.title || 'Panda-Wiki',
+      title: BrandName,
+      siteName: BrandName,
       description: kbDetail?.settings?.desc || '',
       images: icon ? [icon] : [],
     },

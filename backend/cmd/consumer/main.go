@@ -5,10 +5,12 @@ import (
 )
 
 func main() {
-	app, err := createApp()
+	app, cleanup, err := createApp()
 	if err != nil {
 		panic(err)
 	}
+	defer cleanup()
+	
 	if err := app.MQConsumer.StartConsumerHandlers(context.Background()); err != nil {
 		panic(err)
 	}

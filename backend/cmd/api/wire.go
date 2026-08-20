@@ -13,7 +13,7 @@ import (
 	"github.com/chaitin/panda-wiki/telemetry"
 )
 
-func createApp() (*App, error) {
+func createApp() (*App, func(), error) {
 	wire.Build(
 		wire.Struct(new(App), "*"),
 		wire.NewSet(
@@ -26,7 +26,7 @@ func createApp() (*App, error) {
 			share.ProviderSet,
 		),
 	)
-	return &App{}, nil
+	return &App{}, nil, nil
 }
 
 type App struct {

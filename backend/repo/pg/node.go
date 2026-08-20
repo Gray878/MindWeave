@@ -335,6 +335,17 @@ func (r *NodeRepository) Delete(ctx context.Context, kbID string, ids []string) 
 	return lo.Uniq(docIDs), nil
 }
 
+func (r *NodeRepository) CollectAllChildNodeIDs(ctx context.Context, kbID string, parentIDs []string) ([]string, error) {
+	allIDs := make([]string, 0)
+	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		allIDs = r.collectAllChildNodeIDs(tx, kbID, parentIDs)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return allIDs, nil
+}
+
 // collectAllChildNodeIDs recursively collects all child node IDs for the given parent IDs
 func (r *NodeRepository) collectAllChildNodeIDs(tx *gorm.DB, kbID string, parentIDs []string) []string {
 	allIDs := make([]string, 0)

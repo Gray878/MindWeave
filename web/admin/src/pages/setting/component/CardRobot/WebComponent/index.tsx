@@ -18,7 +18,6 @@ import {
   Button,
   Collapse,
   FormControlLabel,
-  Link,
   Radio,
   RadioGroup,
   Stack,
@@ -154,29 +153,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
   }, [kb]);
 
   return (
-    <SettingCardItem
-      title='网页挂件机器人'
-      isEdit={isEdit}
-      onSubmit={onSubmit}
-      more={
-        <Link
-          component='a'
-          href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a'
-          target='_blank'
-          sx={{
-            fontSize: 14,
-            textDecoration: 'none',
-            fontWeight: 'normal',
-            ml: 1,
-            '&:hover': {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          使用方法
-        </Link>
-      }
-    >
+    <SettingCardItem title='网页挂件机器人' isEdit={isEdit} onSubmit={onSubmit}>
       <Stack spacing={3}>
         <FormItem label='网页挂件机器人'>
           <Controller
@@ -604,80 +581,55 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
                         }}
                       />
                     </FormItem> */}
-                    <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
-                      <FormItem
-                        label='版权信息'
-                        sx={{ alignItems: 'flex-start' }}
-                        labelSx={{ mt: 1 }}
-                      >
-                        <Controller
-                          control={control}
-                          name='copyright_hide_enabled'
-                          render={({ field }) => {
-                            return (
-                              <RadioGroup
-                                row
-                                {...field}
-                                onChange={e => {
-                                  field.onChange(e.target.value);
-                                  setIsEdit(true);
-                                }}
-                              >
-                                <FormControlLabel
-                                  value='0'
-                                  control={<Radio size='small' />}
-                                  label={<Box sx={{ width: 100 }}>显示</Box>}
-                                />
-                                <FormControlLabel
-                                  value='1'
-                                  control={<Radio size='small' />}
-                                  label={<Box sx={{ width: 100 }}>隐藏</Box>}
-                                />
-                              </RadioGroup>
-                            );
-                          }}
-                        />
-                      </FormItem>
-                      {copyright_hide_enabled === '0' && (
-                        <FormItem
-                          label='版权文字'
-                          sx={{ alignItems: 'flex-start' }}
-                          labelSx={{ mt: 1 }}
-                        >
-                          <Controller
-                            control={control}
-                            name='copyright_info'
-                            render={({ field }) => (
-                              <TextField
-                                fullWidth
-                                {...field}
-                                placeholder='本网站由 PandaWiki 提供技术支持'
-                                error={!!errors.copyright_info}
-                                helperText={errors.copyright_info?.message}
-                                onChange={event => {
-                                  setIsEdit(true);
-                                  field.onChange(event);
-                                }}
+                    <FormItem
+                      label='版权信息'
+                      sx={{ alignItems: 'flex-start' }}
+                      labelSx={{ mt: 1 }}
+                    >
+                      <Controller
+                        control={control}
+                        name='copyright_hide_enabled'
+                        render={({ field }) => {
+                          return (
+                            <RadioGroup
+                              row
+                              {...field}
+                              onChange={e => {
+                                field.onChange(e.target.value);
+                                setIsEdit(true);
+                              }}
+                            >
+                              <FormControlLabel
+                                value='0'
+                                control={<Radio size='small' />}
+                                label={<Box sx={{ width: 100 }}>显示</Box>}
                               />
-                            )}
-                          />
-                        </FormItem>
-                      )}
+                              <FormControlLabel
+                                value='1'
+                                control={<Radio size='small' />}
+                                label={<Box sx={{ width: 100 }}>隐藏</Box>}
+                              />
+                            </RadioGroup>
+                          );
+                        }}
+                      />
+                    </FormItem>
+                    {copyright_hide_enabled === '0' && (
                       <FormItem
-                        label='免责声明'
+                        label='版权文字'
                         sx={{ alignItems: 'flex-start' }}
                         labelSx={{ mt: 1 }}
                       >
                         <Controller
                           control={control}
-                          name='disclaimer'
+                          name='copyright_info'
                           render={({ field }) => (
                             <TextField
                               fullWidth
                               {...field}
-                              placeholder='本回答由 PandaWiki AI 自动生成，仅供参考。'
-                              error={!!errors.disclaimer}
-                              helperText={errors.disclaimer?.message}
+                              placeholder='本网站由 MindWeave 提供技术支持'
+                              error={!!errors.copyright_info}
+                              helperText={errors.copyright_info?.message}
                               onChange={event => {
                                 setIsEdit(true);
                                 field.onChange(event);
@@ -686,7 +638,30 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
                           )}
                         />
                       </FormItem>
-                    </VersionMask>
+                    )}
+                    <FormItem
+                      label='免责声明'
+                      sx={{ alignItems: 'flex-start' }}
+                      labelSx={{ mt: 1 }}
+                    >
+                      <Controller
+                        control={control}
+                        name='disclaimer'
+                        render={({ field }) => (
+                          <TextField
+                            fullWidth
+                            {...field}
+                            placeholder='本回答由 MindWeave AI 自动生成，仅供参考。'
+                            error={!!errors.disclaimer}
+                            helperText={errors.disclaimer?.message}
+                            onChange={event => {
+                              setIsEdit(true);
+                              field.onChange(event);
+                            }}
+                          />
+                        )}
+                      />
+                    </FormItem>
                   </Stack>
                 </Collapse>
               </Box>

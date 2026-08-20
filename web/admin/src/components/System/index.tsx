@@ -1,14 +1,18 @@
+import Card from '@/components/Card';
+import { useURLSearchParams } from '@/hooks';
 import { getApiV1ModelList } from '@/request/Model';
-import { GithubComChaitinPandaWikiDomainModelListItem } from '@/request/types';
+import {
+  ConstsUserRole,
+  GithubComChaitinPandaWikiDomainModelListItem,
+} from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setModelList, setModelStatus } from '@/store/slices/config';
-import { Modal } from '@ctzhian/ui';
-import { IconAChilunshezhisheding } from '@panda-wiki/icons';
-import { Box, Button, Tab, Tabs, useTheme } from '@mui/material';
-import { useEffect, useState, useRef } from 'react';
+import { Box, Tab, Tabs, useTheme } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 
 import Member from './component/Member';
-import ModelConfig, { ModelConfigRef } from './component/ModelConfig';
+import ModelConfig from './component/ModelConfig';
 
 const SystemTabs = [
   { label: '模型配置', id: 'model-config' },
@@ -17,13 +21,10 @@ const SystemTabs = [
 
 const System = () => {
   const theme = useTheme();
-  const { user, modelList, isCreateWikiModalOpen } = useAppSelector(
-    state => state.config,
-  );
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('model-config');
   const dispatch = useAppDispatch();
-  const modelConfigRef = useRef<ModelConfigRef>(null);
+  const { user, modelList } = useAppSelector(state => state.config);
+  const [searchParams, setSearchParams] = useURLSearchParams();
+  const activeTab = searchParams.get('tab') || 'model-config';
   const [chatModelData, setChatModelData] =
     useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
   const [embeddingModelData, setEmbeddingModelData] =
@@ -51,15 +52,19 @@ const System = () => {
     const rerank = list.find(it => it.type === 'rerank') || null;
     const analysis = list.find(it => it.type === 'analysis') || null;
     const analysisVL = list.find(it => it.type === 'analysis-vl') || null;
+
     setChatModelData(chat);
     setEmbeddingModelData(embedding);
     setRerankModelData(rerank);
     setAnalysisModelData(analysis);
     setAnalysisVLModelData(analysisVL);
 
-    // 检查模型配置状态
     const status = !!(chat && embedding && rerank);
     dispatch(setModelStatus(status));
+  };
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
   };
 
   useEffect(() => {
@@ -69,47 +74,28 @@ const System = () => {
   }, [modelList]);
 
   useEffect(() => {
-    if (isCreateWikiModalOpen) {
-      setOpen(false);
+    if (
+      user.role === ConstsUserRole.UserRoleAdmin &&
+      (!modelList || modelList.length === 0)
+    ) {
+      getModelList();
     }
-  }, [isCreateWikiModalOpen]);
+  }, [modelList, user.role]);
+
+  if (!user.id) return <></>;
+
+  if (user.role !== ConstsUserRole.UserRoleAdmin) {
+    return <Navigate to='/401' replace />;
+  }
 
   return (
-    <>
-      <Box sx={{ position: 'relative' }}>
-        {user.role === 'admin' && (
-          <Button
-            size='small'
-            variant='outlined'
-            startIcon={<IconAChilunshezhisheding />}
-            onClick={() => setOpen(true)}
-          >
-            系统配置
-          </Button>
-        )}
-      </Box>
-      <Modal
-        title='系统配置'
-        width={1100}
-        open={open}
-        disableEnforceFocus={true}
-        footer={null}
-        onCancel={() => {
-          if (activeTab === 'model-config' && modelConfigRef.current) {
-            modelConfigRef.current.handleClose();
-          } else {
-            setOpen(false);
-          }
-        }}
-      >
+    <Box sx={{ position: 'relative' }}>
+      <Card sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
         <Tabs
           value={activeTab}
-          onChange={(event, newValue) => setActiveTab(newValue)}
+          onChange={(event, newValue) => setActiveTab(newValue as string)}
           aria-label='system tabs'
           sx={{
-            mb: 2,
-            borderBottom: 1,
-            borderColor: 'divider',
             '& .MuiTabs-indicator': {
               display: 'none',
             },
@@ -142,6 +128,13 @@ const System = () => {
             <Tab key={tab.id} label={tab.label} value={tab.id} />
           ))}
         </Tabs>
+      </Card>
+      <Card
+        sx={{
+          height: 'calc(100vh - 148px)',
+          overflow: 'auto',
+        }}
+      >
         {activeTab === 'user-management' && (
           <Box>
             <Member />
@@ -150,8 +143,7 @@ const System = () => {
         {activeTab === 'model-config' && (
           <Box>
             <ModelConfig
-              ref={modelConfigRef}
-              onCloseModal={() => setOpen(false)}
+              onCloseModal={() => {}}
               chatModelData={chatModelData}
               embeddingModelData={embeddingModelData}
               rerankModelData={rerankModelData}
@@ -161,8 +153,9 @@ const System = () => {
             />
           </Box>
         )}
-      </Modal>
-    </>
+      </Card>
+    </Box>
   );
 };
+
 export default System;

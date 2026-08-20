@@ -27,10 +27,16 @@ const SettingTabs: { label: string; id: string }[] = [
   { label: 'MCP 设置', id: 'mcp' },
 ];
 
+// Temporarily hide the AI robot tab from the settings navigation.
+const VisibleSettingTabs = SettingTabs.filter(tab => tab.id !== 'robot');
+
 const Setting = () => {
   const { kb_id } = useAppSelector(state => state.config);
   const [searchParams, setSearchParams] = useURLSearchParams();
   const activeTab = searchParams.get('tab') || 'portal-website';
+  const selectedTab = VisibleSettingTabs.some(tab => tab.id === activeTab)
+    ? activeTab
+    : false;
   const [kb, setKb] = useState<DomainKnowledgeBaseDetail | null>(null);
   const [url, setUrl] = useState<string>('');
   const [info, setInfo] = useState<DomainAppDetailResp>();
@@ -95,11 +101,11 @@ const Setting = () => {
     >
       <Card sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
         <Tabs
-          value={activeTab}
+          value={selectedTab}
           onChange={(event, newValue) => setActiveTab(newValue as string)}
           aria-label='setting tabs'
         >
-          {SettingTabs.map(tab => (
+          {VisibleSettingTabs.map(tab => (
             <Tab key={tab.id} label={tab.label} value={tab.id} />
           ))}
         </Tabs>

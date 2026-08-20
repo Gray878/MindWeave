@@ -22,6 +22,7 @@ import (
 	"github.com/chaitin/panda-wiki/server/http"
 	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/chaitin/panda-wiki/store/ipdb"
+	"github.com/chaitin/panda-wiki/store/neo4j"
 	"github.com/chaitin/panda-wiki/store/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
 	"github.com/chaitin/panda-wiki/store/s3"
@@ -31,20 +32,20 @@ import (
 
 // Injectors from wire.go:
 
-func createApp() (*App, error) {
+func createApp() (*App, func(), error) {
 	configConfig, err := config.NewConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	logger := log.NewLogger(configConfig)
 	readOnlyMiddleware := middleware.NewReadonlyMiddleware(logger)
 	cacheCache, err := cache.NewCache(configConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sessionMiddleware, err := middleware.NewSessionMiddleware(logger, configConfig, cacheCache)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	echo := http.NewEcho(logger, configConfig, readOnlyMiddleware, sessionMiddleware)
 	httpServer := &http.HTTPServer{
@@ -52,37 +53,45 @@ func createApp() (*App, error) {
 	}
 	db, err := pg.NewDB(configConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	userAccessRepository := pg2.NewUserAccessRepository(db, logger)
 	apiTokenRepo := pg2.NewAPITokenRepo(db, logger, cacheCache)
 	authMiddleware, err := middleware.NewAuthMiddleware(configConfig, logger, userAccessRepository, apiTokenRepo)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ragService, err := rag.NewRAGService(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	knowledgeBaseRepository := pg2.NewKnowledgeBaseRepository(db, configConfig, logger, ragService)
 	nodeRepository := pg2.NewNodeRepository(db, logger)
 	mqProducer, err := mq.NewMQProducer(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ragRepository := mq2.NewRAGRepository(mqProducer)
 	userRepository := pg2.NewUserRepository(db, logger)
 	kbRepo := cache2.NewKBRepo(cacheCache)
-	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig)
+	store, cleanup, err := neo4j.ProvideNeo4jStore(configConfig, logger)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	graphSyncDeadLetterRepository := pg2.NewGraphSyncDeadLetterRepository(db, logger)
+	graphSyncUseCase := usecase.NewGraphSyncUseCase(store, nodeRepository, graphSyncDeadLetterRepository, logger)
+	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, graphSyncUseCase, logger, configConfig)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
 	}
 	shareAuthMiddleware := middleware.NewShareAuthMiddleware(logger, knowledgeBaseUsecase)
 	captchaCaptcha := captcha.NewCaptcha()
 	baseHandler := handler.NewBaseHandler(echo, logger, configConfig, authMiddleware, shareAuthMiddleware, captchaCaptcha)
-	userUsecase, err := usecase.NewUserUsecase(userRepository, logger, configConfig)
+	userUsecase, err := usecase.NewUserUsecase(userRepository, graphSyncUseCase, logger, configConfig)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	userHandler := v1.NewUserHandler(echo, baseHandler, logger, userUsecase, authMiddleware, configConfig, cacheCache)
 	conversationRepository := pg2.NewConversationRepository(db, logger)
@@ -93,24 +102,27 @@ func createApp() (*App, error) {
 	appRepository := pg2.NewAppRepository(db, logger)
 	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
 	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
 	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase, graphSyncUseCase)
 	nodeHandler := v1.NewNodeHandler(baseHandler, echo, nodeUsecase, authMiddleware, logger)
 	geoRepo := cache2.NewGeoCache(cacheCache, db, logger)
 	ipdbIPDB, err := ipdb.NewIPDB(configConfig, logger)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	ipAddressRepo := ipdb2.NewIPAddressRepo(ipdbIPDB, logger)
 	conversationUsecase := usecase.NewConversationUsecase(conversationRepository, nodeRepository, geoRepo, logger, ipAddressRepo, authRepo)
 	blockWordRepo := pg2.NewBlockWordRepo(db, logger)
 	chatUsecase, err := usecase.NewChatUsecase(llmUsecase, knowledgeBaseRepository, conversationUsecase, modelUsecase, appRepository, blockWordRepo, nodeRepository, authRepo, logger)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	appUsecase := usecase.NewAppUsecase(appRepository, authRepo, nodeRepository, knowledgeBaseRepository, nodeUsecase, logger, configConfig, chatUsecase, cacheCache)
 	appHandler := v1.NewAppHandler(echo, baseHandler, logger, authMiddleware, appUsecase, modelUsecase, conversationUsecase, configConfig)
@@ -120,11 +132,13 @@ func createApp() (*App, error) {
 	conversationHandler := v1.NewConversationHandler(echo, baseHandler, logger, authMiddleware, conversationUsecase)
 	mqConsumer, err := mq.NewMQConsumer(configConfig, logger)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	crawlerUsecase, err := usecase.NewCrawlerUsecase(logger, mqConsumer, cacheCache)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, fileUsecase)
 	creationUsecase := usecase.NewCreationUsecase(logger, llmUsecase, modelUsecase)
@@ -137,9 +151,12 @@ func createApp() (*App, error) {
 	commentHandler := v1.NewCommentHandler(echo, baseHandler, logger, authMiddleware, commentUsecase)
 	authUsecase, err := usecase.NewAuthUsecase(authRepo, logger, knowledgeBaseRepository, cacheCache)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	authV1Handler := v1.NewAuthV1Handler(echo, baseHandler, logger, authUsecase)
+	graphQueryUseCase := usecase.NewGraphQueryUseCase(store)
+	graphHandler := v1.NewGraphHandler(baseHandler, echo, graphQueryUseCase, graphSyncUseCase, authMiddleware, logger)
 	apiHandlers := &v1.APIHandlers{
 		UserHandler:          userHandler,
 		KnowledgeBaseHandler: knowledgeBaseHandler,
@@ -153,6 +170,7 @@ func createApp() (*App, error) {
 		StatHandler:          statHandler,
 		CommentHandler:       commentHandler,
 		AuthV1Handler:        authV1Handler,
+		GraphHandler:         graphHandler,
 	}
 	shareNodeHandler := share.NewShareNodeHandler(baseHandler, echo, nodeUsecase, logger)
 	shareAppHandler := share.NewShareAppHandler(echo, baseHandler, logger, appUsecase)
@@ -188,7 +206,8 @@ func createApp() (*App, error) {
 	mcpRepository := pg2.NewMCPRepository(db, logger)
 	client, err := telemetry.NewClient(logger, knowledgeBaseRepository, modelUsecase, userUsecase, nodeRepository, conversationRepository, mcpRepository, configConfig)
 	if err != nil {
-		return nil, err
+		cleanup()
+		return nil, nil, err
 	}
 	app := &App{
 		HTTPServer:    httpServer,
@@ -198,7 +217,9 @@ func createApp() (*App, error) {
 		Logger:        logger,
 		Telemetry:     client,
 	}
-	return app, nil
+	return app, func() {
+		cleanup()
+	}, nil
 }
 
 // wire.go:

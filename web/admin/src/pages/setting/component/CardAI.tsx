@@ -3,7 +3,7 @@ import { DomainKnowledgeBaseDetail } from '@/request/types';
 import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import { useAppSelector } from '@/store';
 import { message, Modal } from '@ctzhian/ui';
-import { Box, Slider, TextField } from '@mui/material';
+import { Box, TextField } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
@@ -19,7 +19,6 @@ const CardAI = ({ kb }: CardAIProps) => {
 
   const { control, handleSubmit, setValue, getValues } = useForm({
     defaultValues: {
-      interval: 0,
       content: '',
       summary_content: '',
     },
@@ -86,7 +85,6 @@ const CardAI = ({ kb }: CardAIProps) => {
       <SettingCardItem title='智能问答' isEdit={isEdit} onSubmit={onSubmit}>
         <FormItem
           vertical
-          permission={PROFESSION_VERSION_PERMISSION}
           extra={
             <Box
               sx={{
@@ -121,72 +119,8 @@ const CardAI = ({ kb }: CardAIProps) => {
             )}
           />
         </FormItem>
-        <FormItem vertical label='连续提问时间间隔（敬请期待）'>
-          <Controller
-            control={control}
-            name='interval'
-            render={({ field }) => (
-              <Slider
-                {...field}
-                disabled
-                valueLabelDisplay='auto'
-                min={200}
-                max={300}
-                step={5}
-                sx={{
-                  width: 432,
-                  '& .MuiSlider-thumb': {
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    backgroundColor: '#fff',
-                    border: '2px solid currentColor',
-                    '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {
-                      boxShadow: 'inherit',
-                    },
-                    '&::before': {
-                      display: 'none',
-                    },
-                  },
-                  '& .MuiSlider-track': {
-                    bgcolor: 'primary.main',
-                  },
-                  '& .MuiSlider-rail': {
-                    bgcolor: 'text.disabled',
-                  },
-                  '& .MuiSlider-valueLabel': {
-                    lineHeight: 1.2,
-                    fontSize: 12,
-                    fontWeight: 'bold',
-                    background: 'unset',
-                    p: 0,
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50% 50% 50% 0',
-                    bgcolor: 'primary.main',
-                    transformOrigin: 'bottom left',
-                    transform: 'translate(50%, -100%) rotate(-45deg) scale(0)',
-                    '&::before': { display: 'none' },
-                    '&.MuiSlider-valueLabelOpen': {
-                      transform:
-                        'translate(50%, -100%) rotate(-45deg) scale(1)',
-                    },
-                    '& > *': {
-                      transform: 'rotate(45deg)',
-                    },
-                  },
-                }}
-                onChange={(e, value) => {
-                  field.onChange(+value);
-                  setIsEdit(true);
-                }}
-              />
-            )}
-          />
-        </FormItem>
         <FormItem
           vertical
-          permission={PROFESSION_VERSION_PERMISSION}
           extra={
             <Box
               sx={{

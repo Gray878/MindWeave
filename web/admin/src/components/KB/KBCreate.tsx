@@ -20,7 +20,7 @@ const VALIDATION_RULES = {
   name: {
     required: {
       value: true,
-      message: 'Wiki 站名称不能为空',
+      message: '知识库名称不能为空',
     },
   },
   port: {

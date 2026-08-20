@@ -1,41 +1,39 @@
 import Logo from '@/assets/images/logo.png';
-import Qrcode from '@/assets/images/qrcode.png';
-
-import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
-import { ConstsUserKBPermission } from '@/request/types';
-import { Modal } from '@ctzhian/ui';
-import { useState, useMemo, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Avatar from '../Avatar';
-import Version from './Version';
 import { useAppSelector } from '@/store';
+import { Box, Button, Stack, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import {
-  IconBangzhuwendang1,
+  IconAChilunshezhisheding,
   IconNeirongguanli,
   IconTongjifenxi1,
   IconJushou,
-  IconGongxian,
   IconPaperFull,
   IconDuihualishi1,
   IconChilun,
-  IconGroup,
-  IconGithub,
 } from '@panda-wiki/icons';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
+import { ElementType, useEffect, useMemo } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
-const MENUS = [
+type MenuItem = {
+  label: string;
+  value: string;
+  pathname: string;
+  icon: ElementType;
+  show: boolean;
+  perms: ConstsUserKBPermission[];
+  adminOnly?: boolean;
+};
+
+export const SIDEBAR_WIDTH = 176;
+export const SIDEBAR_LAYOUT_OFFSET = SIDEBAR_WIDTH + 32;
+
+const MENUS: MenuItem[] = [
   {
-    label: '文档',
-    value: '/',
-    pathname: 'document',
-    icon: IconNeirongguanli,
-    show: true,
-    perms: [
-      ConstsUserKBPermission.UserKBPermissionFullControl,
-      ConstsUserKBPermission.UserKBPermissionDocManage,
-    ],
-  },
-  {
-    label: '统计',
+    label: '\u6570\u636e\u7edf\u8ba1',
     value: '/stat',
     pathname: 'stat',
     icon: IconTongjifenxi1,
@@ -46,15 +44,29 @@ const MENUS = [
     ],
   },
   {
-    label: '贡献',
-    value: '/contribution',
-    pathname: 'contribution',
-    icon: IconGongxian,
+    label: '\u6587\u6863\u7ba1\u7406',
+    value: '/document',
+    pathname: 'document',
+    icon: IconNeirongguanli,
     show: true,
-    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionDocManage,
+    ],
   },
   {
-    label: '问答',
+    label: '\u77e5\u8bc6\u56fe\u8c31',
+    value: '/graph',
+    pathname: 'graph',
+    icon: AccountTreeIcon,
+    show: true,
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionDataOperate,
+    ],
+  },
+  {
+    label: '\u95ee\u7b54\u8bb0\u5f55',
     value: '/conversation',
     pathname: 'conversation',
     icon: IconDuihualishi1,
@@ -65,7 +77,7 @@ const MENUS = [
     ],
   },
   {
-    label: '反馈',
+    label: '\u7528\u6237\u53cd\u9988',
     value: '/feedback',
     pathname: 'feedback',
     icon: IconJushou,
@@ -76,7 +88,7 @@ const MENUS = [
     ],
   },
   {
-    label: '发布',
+    label: '\u5185\u5bb9\u53d1\u5e03',
     value: '/release',
     pathname: 'release',
     icon: IconPaperFull,
@@ -87,7 +99,25 @@ const MENUS = [
     ],
   },
   {
-    label: '设置',
+    label: '\u6a21\u578b\u914d\u7f6e',
+    value: '/model-config',
+    pathname: 'model-config',
+    icon: IconAChilunshezhisheding,
+    show: true,
+    adminOnly: true,
+    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+  },
+  {
+    label: '\u7528\u6237\u7ba1\u7406',
+    value: '/user-management',
+    pathname: 'user-management',
+    icon: ManageAccountsOutlinedIcon,
+    show: true,
+    adminOnly: true,
+    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+  },
+  {
+    label: '\u5e94\u7528\u8bbe\u7f6e',
     value: '/setting',
     pathname: 'application-setting',
     icon: IconChilun,
@@ -98,73 +128,87 @@ const MENUS = [
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  const { kbDetail } = useAppSelector(state => state.config);
+  const { kbDetail, user } = useAppSelector(state => state.config);
   const theme = useTheme();
-  const [showQrcode, setShowQrcode] = useState(false);
   const navigate = useNavigate();
   const menus = useMemo(() => {
     return MENUS.filter(it => {
-      return it.perms.includes(kbDetail.perm!);
+      const hasPermission = it.perms.includes(kbDetail.perm!);
+      const hasRoleAccess =
+        !it.adminOnly || user.role === ConstsUserRole.UserRoleAdmin;
+      return hasPermission && hasRoleAccess;
     });
-  }, [kbDetail]);
+  }, [kbDetail, user.role]);
 
   useEffect(() => {
-    const menu = menus.find(it => {
-      if (it.value === '/') {
-        return pathname === '/';
-      }
-      return pathname.startsWith(it.value);
-    });
+    const menu = menus.find(
+      it => pathname === it.value || pathname.startsWith(`${it.value}/`),
+    );
 
-    if (!menu && menus.length > 0) {
+    if (!menu && menus.length > 0 && pathname !== '/system') {
       navigate(menus[0].value);
     }
-  }, [pathname, menus]);
+  }, [pathname, menus, navigate]);
 
   return (
     <Stack
       sx={{
-        width: 138,
+        width: SIDEBAR_WIDTH,
         m: 2,
         zIndex: 999,
-        p: 2,
+        p: 1.75,
         height: 'calc(100vh - 32px)',
         bgcolor: '#FFFFFF',
-        borderRadius: '10px',
+        borderRadius: '20px',
         position: 'fixed',
         top: 0,
         left: 0,
         overflow: 'auto',
+        border: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
+        boxShadow: '0px 20px 40px rgba(18, 24, 40, 0.04)',
       }}
     >
       <Stack
-        direction={'row'}
-        alignItems={'center'}
-        justifyContent={'center'}
-        sx={{ flexShrink: 0 }}
-      >
-        <Avatar src={Logo} sx={{ width: 30, height: 30 }} />
-      </Stack>
-      <Box
+        direction='row'
+        alignItems='center'
+        gap={1.25}
         sx={{
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: 'text.primary',
-          textAlign: 'center',
-          lineHeight: '36px',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          flexShrink: 0,
+          mb: 2,
+          pb: 2,
+          borderBottom: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
         }}
       >
-        PandaWiki
-      </Box>
-      <Stack sx={{ py: 2, flexGrow: 1 }} gap={1}>
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: '14px',
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'background.paper3',
+            border: `1px solid ${alpha(theme.palette.common.black, 0.08)}`,
+            flexShrink: 0,
+          }}
+        >
+          <Avatar src={Logo} sx={{ width: 24, height: 24 }} />
+        </Box>
+        <Box
+          sx={{
+            fontSize: '17px',
+            fontWeight: 700,
+            color: 'text.primary',
+            letterSpacing: '0.01em',
+          }}
+        >
+          MindWeave
+        </Box>
+      </Stack>
+      <Stack sx={{ py: 0.5, flexGrow: 1 }} gap={0.75}>
         {menus.map(it => {
-          let isActive = false;
-          if (it.value === '/') {
-            isActive = pathname === '/';
-          } else {
-            isActive = pathname.includes(it.value);
-          }
+          const isActive =
+            pathname === it.value || pathname.startsWith(`${it.value}/`);
+
           if (!it.show) return null;
           const IconMenu = it.icon;
           return (
@@ -172,259 +216,94 @@ const Sidebar = () => {
               key={it.pathname}
               to={it.value}
               style={{
-                zIndex: isActive ? 2 : 1,
+                textDecoration: 'none',
               }}
             >
               <Button
-                variant={isActive ? 'contained' : 'text'}
-                color='dark'
+                disableRipple
+                variant='text'
                 sx={{
                   width: '100%',
-                  height: 50,
-                  px: 2,
+                  minHeight: 48,
+                  px: 1.25,
+                  py: 0.75,
                   justifyContent: 'flex-start',
-                  color: isActive ? '#FFFFFF' : 'text.primary',
-                  fontWeight: isActive ? '500' : '400',
-                  boxShadow: isActive
-                    ? '0px 10px 25px 0px rgba(33,34,45,0.2)'
-                    : 'none',
+                  gap: 1.25,
+                  position: 'relative',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  fontWeight: isActive ? 600 : 500,
+                  bgcolor: isActive
+                    ? alpha(theme.palette.primary.main, 0.06)
+                    : 'transparent',
+                  border: `1px solid ${
+                    isActive
+                      ? alpha(theme.palette.primary.main, 0.12)
+                      : 'transparent'
+                  }`,
+                  borderRadius: '14px',
+                  transition:
+                    'transform 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 8,
+                    top: 14,
+                    bottom: 14,
+                    width: 3,
+                    borderRadius: '999px',
+                    bgcolor: isActive ? 'primary.main' : 'transparent',
+                    transition: 'background-color 180ms ease',
+                  },
                   ':hover': {
-                    boxShadow: isActive
-                      ? '0px 10px 25px 0px rgba(33,34,45,0.2)'
-                      : 'none',
+                    bgcolor: isActive
+                      ? alpha(theme.palette.primary.main, 0.08)
+                      : alpha(theme.palette.common.black, 0.03),
+                    borderColor: isActive
+                      ? alpha(theme.palette.primary.main, 0.16)
+                      : alpha(theme.palette.common.black, 0.08),
+                    color: 'text.primary',
+                    transform: 'translateX(2px)',
                   },
                 }}
               >
-                <IconMenu
+                <Box
                   sx={{
-                    fontSize: 14,
-                    mr: 1,
-                    color: isActive ? '#FFFFFF' : 'text.disabled',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '10px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: isActive ? '#FFFFFF' : 'background.paper3',
+                    border: `1px solid ${
+                      isActive
+                        ? alpha(theme.palette.primary.main, 0.12)
+                        : alpha(theme.palette.common.black, 0.06)
+                    }`,
+                    transition:
+                      'background-color 180ms ease, border-color 180ms ease, transform 180ms ease',
                   }}
-                />
-                {it.label}
+                >
+                  <IconMenu
+                    sx={{
+                      fontSize: 16,
+                      color: isActive ? 'primary.main' : 'text.disabled',
+                      transition: 'color 180ms ease, transform 180ms ease',
+                    }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    lineHeight: 1.2,
+                    textAlign: 'left',
+                  }}
+                >
+                  {it.label}
+                </Box>
               </Button>
             </NavLink>
           );
         })}
       </Stack>
-      <Stack gap={1} sx={{ flexShrink: 0 }}>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={
-            <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />
-          }
-          onClick={() =>
-            window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')
-          }
-        >
-          帮助文档
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            textTransform: 'none',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={<IconGithub sx={{ fontSize: '14px !important' }} />}
-          onClick={() =>
-            window.open('https://github.com/chaitin/PandaWiki', '_blank')
-          }
-        >
-          GitHub
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          onClick={() => setShowQrcode(true)}
-          startIcon={<IconGroup sx={{ fontSize: '14px !important' }} />}
-        >
-          在线支持
-        </Button>
-        <Version />
-      </Stack>
-      <Modal
-        open={showQrcode}
-        onCancel={() => setShowQrcode(false)}
-        title='在线支持'
-        footer={null}
-        width={600}
-      >
-        <Box sx={{ p: 2 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
-            {/* Enterprise WeChat Group */}
-            <Box sx={{ flex: 1, display: 'flex' }}>
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  background:
-                    'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-                  textAlign: 'center',
-                  width: '100%',
-                  height: 280,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                }}
-              >
-                <Stack alignItems='center' spacing={1.5}>
-                  <Typography
-                    variant='subtitle1'
-                    sx={{ fontWeight: 600, color: '#2d3748' }}
-                  >
-                    企业微信交流群
-                  </Typography>
-                  <Box
-                    component='img'
-                    src={Qrcode}
-                    sx={{
-                      width: 120,
-                      height: 120,
-                      borderRadius: 2,
-                      border: '2px solid white',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-                    }}
-                  />
-                  <Typography
-                    variant='body2'
-                    sx={{ color: '#4a5568', fontSize: 13 }}
-                  >
-                    扫码加入企业微信交流群
-                  </Typography>
-                </Stack>
-              </Box>
-            </Box>
-
-            {/* Divider */}
-            <Box
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Box
-                sx={{
-                  width: 1,
-                  height: '60%',
-                  background:
-                    'linear-gradient(to bottom, transparent, #e2e8f0, transparent)',
-                }}
-              />
-            </Box>
-
-            {/* Community Forum */}
-            <Box sx={{ flex: 1, display: 'flex' }}>
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  background:
-                    'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-                  textAlign: 'center',
-                  width: '100%',
-                  height: 280,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                }}
-              >
-                <Stack alignItems='center' spacing={2}>
-                  <Typography
-                    variant='subtitle1'
-                    sx={{ fontWeight: 600, color: '#2d3748' }}
-                  >
-                    社区论坛
-                  </Typography>
-                  <Button
-                    variant='contained'
-                    onClick={() =>
-                      window.open(
-                        'https://bbs.baizhi.cloud?ref=PandaWiki',
-                        '_blank',
-                      )
-                    }
-                    sx={{
-                      px: 3,
-                      py: 1,
-                      fontSize: 13,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      background:
-                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-                      '&:hover': {
-                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.5)',
-                        transform: 'translateY(-1px)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    访问官方论坛
-                  </Button>
-                  <Typography
-                    variant='body2'
-                    sx={{ color: '#4a5568', fontSize: 13, textAlign: 'center' }}
-                  >
-                    查看更多技术讨论和社区动态
-                  </Typography>
-                </Stack>
-              </Box>
-            </Box>
-          </Stack>
-        </Box>
-      </Modal>
     </Stack>
   );
 };

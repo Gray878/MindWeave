@@ -16,6 +16,7 @@ import {
 } from '@/request/ShareAuth';
 import { getShareV1NodeList } from '@/request/ShareNode';
 import { clearCookie } from '@/utils/cookie';
+import { BrandName } from '@/constant';
 
 import {
   IconKoulingrenzheng,
@@ -287,7 +288,7 @@ export default function Login() {
               <Box
                 sx={{ fontSize: 28, lineHeight: '36px', fontWeight: 'bold' }}
               >
-                {kbDetail?.settings?.title}
+                {BrandName}
               </Box>
             </Stack>
             {authType === ConstsAuthType.AuthTypeSimple && (

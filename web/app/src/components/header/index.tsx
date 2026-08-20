@@ -16,10 +16,38 @@ import QaModal from '../QaModal';
 import ThemeSwitch from './themeSwitch';
 import { getImagePath } from '@/utils/getImagePath';
 import { useBasePath } from '@/hooks';
+import { BrandName } from '@/constant';
 interface HeaderProps {
   isDocPage?: boolean;
   isWelcomePage?: boolean;
 }
+
+const HIDDEN_HEADER_BTN_URLS = new Set([
+  'https://ly.safepoint.cloud/XEyeWqL',
+  'https://pandawiki.docs.baizhi.cloud/node/01971640-3937-7664-851d-a7f426d59764',
+]);
+
+const isHiddenHeaderBtn = (item: any) => {
+  const text = String(item?.text || '')
+    .trim()
+    .toLowerCase();
+  const url = String(item?.url || '').trim();
+
+  return (
+    text === 'github' ||
+    (text.includes('微信') && text.includes('群')) ||
+    HIDDEN_HEADER_BTN_URLS.has(url)
+  );
+};
+
+const getHeaderBtns = (btns: any[] | undefined, basePath: string) =>
+  (btns || [])
+    .filter(item => !isHiddenHeaderBtn(item))
+    .map((item: any) => ({
+      ...item,
+      url: getImagePath(item.url, basePath),
+      icon: getImagePath(item.icon, basePath),
+    }));
 
 const LogoutButton = () => {
   const [open, setOpen] = useState(false);
@@ -97,19 +125,13 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
       docWidth={docWidth}
       catalogWidth={catalogWidth}
       logo={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-      title={kbDetail?.settings?.title}
+      title={BrandName}
       placeholder={
         kbDetail?.settings?.web_app_custom_style?.header_search_placeholder
       }
       showSearch
       homePath={basePath || '/'}
-      btns={
-        kbDetail?.settings?.btns?.map((item: any) => ({
-          ...item,
-          url: getImagePath(item.url, basePath),
-          icon: getImagePath(item.icon, basePath),
-        })) || []
-      }
+      btns={getHeaderBtns(kbDetail?.settings?.btns, basePath)}
       onSearch={handleSearch}
       onQaClick={() => setQaModalOpen?.(true)}
     >
@@ -148,19 +170,13 @@ export const WelcomeHeader = () => {
       docWidth='full'
       catalogWidth={catalogWidth}
       logo={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-      title={kbDetail?.settings?.title}
+      title={BrandName}
       placeholder={
         kbDetail?.settings?.web_app_custom_style?.header_search_placeholder
       }
       showSearch
       homePath={basePath || '/'}
-      btns={
-        kbDetail?.settings?.btns?.map((item: any) => ({
-          ...item,
-          url: getImagePath(item.url, basePath),
-          icon: getImagePath(item.icon, basePath),
-        })) || []
-      }
+      btns={getHeaderBtns(kbDetail?.settings?.btns, basePath)}
       onSearch={handleSearch}
       onQaClick={() => setQaModalOpen?.(true)}
     >

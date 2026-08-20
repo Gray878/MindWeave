@@ -105,7 +105,7 @@ const DocumentComments = ({
           )}
         />
       </FormItem>
-      <FormItem label='评论审核' permission={PROFESSION_VERSION_PERMISSION}>
+      <FormItem label='评论审核'>
         <Controller
           control={control}
           name='moderation_enable'
@@ -268,7 +268,7 @@ const AIQuestion = ({
           )}
         />{' '}
       </FormItem>
-      <FormItem label='免责声明' permission={PROFESSION_VERSION_PERMISSION}>
+      <FormItem label='免责声明'>
         <Controller
           control={control}
           name='disclaimer'
@@ -334,7 +334,7 @@ const DocumentContribution = ({
 
   return (
     <SettingCardItem title='文档贡献' isEdit={isEdit} onSubmit={onSubmit}>
-      <FormItem label='文档贡献' permission={PROFESSION_VERSION_PERMISSION}>
+      <FormItem label='文档贡献'>
         <Controller
           control={control}
           name='is_enable'

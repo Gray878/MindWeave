@@ -13,6 +13,7 @@ import { message, Image as ImagePreview } from '@ctzhian/ui';
 import Feedback from '@/components/feedback';
 import { handleThinkingContent } from './utils';
 import { useSmartScroll } from '@/hooks';
+import { BrandName } from '@/constant';
 import { useTheme } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import { useBasePath } from '@/hooks';
@@ -131,11 +132,29 @@ const LoadingContent = ({
   );
 };
 
-const AiQaContent: React.FC<{
+interface AiQaContentProps {
   hotSearch: string[];
   placeholder: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
-}> = ({ hotSearch, placeholder, inputRef }) => {
+  onConversationStateChange?: (hasConversation: boolean) => void;
+  isInline?: boolean;
+  presetQuery?: string;
+  presetQueryKey?: string | number;
+  hideWelcomeState?: boolean;
+  onResetToPrompt?: () => void;
+}
+
+const AiQaContent: React.FC<AiQaContentProps> = ({
+  hotSearch,
+  placeholder,
+  inputRef,
+  onConversationStateChange,
+  isInline = false,
+  presetQuery,
+  presetQueryKey,
+  hideWelcomeState = false,
+  onResetToPrompt,
+}) => {
   const sseClientRef = useRef<SSEClient<{
     type: string;
     content: string;
@@ -174,24 +193,29 @@ const AiQaContent: React.FC<{
     behavior: 'smooth',
   });
 
-  const onReset = () => {
-    if (loading) {
-      handleSearchAbort();
-    }
-    handleSearch(true);
-    setConversationId('');
-    setConversation([]);
-    setFullAnswer('');
-    setInput('');
-    // 清理图片URL
+  const clearUploadedImages = () => {
     uploadedImages.forEach(img => {
       if (img.url.startsWith('blob:')) {
         URL.revokeObjectURL(img.url);
       }
     });
     setUploadedImages([]);
+  };
+
+  const onReset = () => {
+    if (loading) {
+      handleSearchAbort();
+    }
+    setConversationId('');
+    setConversation([]);
+    setFullAnswer('');
+    setInput('');
+    clearUploadedImages();
     setLoading(false);
+    setThinking(4);
     setNonce('');
+    messageIdRef.current = '';
+    lastResultExpendRef.current = false;
   };
 
   const handleSearch = (reset: boolean = false) => {
@@ -548,6 +572,10 @@ const AiQaContent: React.FC<{
       window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
 
+  useEffect(() => {
+    onConversationStateChange?.(conversation.length > 0);
+  }, [conversation.length, onConversationStateChange]);
+
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || (!q.trim() && uploadedImages.length === 0)) return;
     setShouldAutoScroll(true); // 开始新搜索时，重置为自动滚动
@@ -639,38 +667,52 @@ const AiQaContent: React.FC<{
         });
       },
     });
-    const searchQuery =
-      sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
-    if (searchQuery) {
-      sessionStorage.removeItem('chat_search_query');
-      const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.delete('cid');
-      newSearchParams.delete('ask');
-      window.history.replaceState(null, '', newSearchParams.toString());
-      onSearch(searchQuery, true);
+    if (!isInline) {
+      const searchQuery =
+        sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
+      if (searchQuery) {
+        sessionStorage.removeItem('chat_search_query');
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('cid');
+        currentUrl.searchParams.delete('ask');
+        window.history.replaceState(null, '', currentUrl.toString());
+        onSearch(searchQuery, true);
+      }
     }
     return () => {
       handleSearchAbort();
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('cid');
-      currentUrl.searchParams.delete('ask');
-      window.history.replaceState(null, '', currentUrl.toString());
-      setTimeout(() => {
-        onReset();
-      });
+      if (!isInline) {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('cid');
+        currentUrl.searchParams.delete('ask');
+        window.history.replaceState(null, '', currentUrl.toString());
+      }
     };
   }, []);
 
   useEffect(() => {
+    if (!isInline || !presetQuery?.trim() || presetQueryKey === undefined) {
+      return;
+    }
+    onSearch(presetQuery, true);
+  }, [isInline, presetQuery, presetQueryKey]);
+
+  useEffect(() => {
+    if (isInline) {
+      return;
+    }
     if (conversationId) {
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('cid', conversationId);
       currentUrl.searchParams.delete('ask');
       window.history.replaceState(null, '', currentUrl.toString());
     }
-  }, [conversationId]);
+  }, [conversationId, isInline]);
 
   useEffect(() => {
+    if (isInline) {
+      return;
+    }
     const cid = searchParams.get('cid');
     if (cid) {
       const conversation: ConversationItem[] = [];
@@ -734,7 +776,7 @@ const AiQaContent: React.FC<{
   }, []);
 
   useEffect(() => {
-    if (!qaModalOpen) {
+    if (!qaModalOpen && !isInline) {
       conversation.forEach(item => {
         item.image_paths.forEach(image => {
           if (image.startsWith('blob:')) {
@@ -743,12 +785,12 @@ const AiQaContent: React.FC<{
         });
       });
     }
-  }, [qaModalOpen, conversation]);
+  }, [isInline, qaModalOpen, conversation]);
 
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
       {/* 无对话时显示欢迎界面 */}
-      {conversation.length === 0 && (
+      {conversation.length === 0 && !hideWelcomeState && (
         <Box
           sx={{
             flex: 1,
@@ -776,7 +818,7 @@ const AiQaContent: React.FC<{
               variant='h6'
               sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
             >
-              {kbDetail?.settings?.title}
+              {BrandName}
             </Typography>
           </Box>
 
@@ -846,6 +888,7 @@ const AiQaContent: React.FC<{
         direction='column'
         className='conversation-container'
         sx={{
+          maxHeight: isInline ? '100%' : 'calc(100vh - 332px)',
           mb: conversation?.length > 0 ? 2 : 0,
           display: conversation.length > 0 ? 'flex' : 'none',
         }}
@@ -1078,7 +1121,12 @@ const AiQaContent: React.FC<{
             },
             mb: 2,
           })}
-          onClick={onReset}
+          onClick={() => {
+            onReset();
+            if (isInline) {
+              onResetToPrompt?.();
+            }
+          }}
         >
           <IconXinduihua sx={{ fontSize: 14 }} />
           新会话

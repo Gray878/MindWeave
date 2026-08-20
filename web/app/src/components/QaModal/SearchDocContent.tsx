@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   TextField,
@@ -21,6 +21,7 @@ import { DomainNodeContentChunkSSE } from '@/request/types';
 import { message } from '@ctzhian/ui';
 import { IconWenjian } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
+import { BrandName } from '@/constant';
 import { useBasePath } from '@/hooks';
 import { getImagePath } from '@/utils/getImagePath';
 
@@ -70,13 +71,23 @@ const SearchDocSkeleton = () => {
 interface SearchDocContentProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   placeholder: string;
+  onSearchStateChange?: (hasSearchState: boolean) => void;
+  isInline?: boolean;
+  presetQuery?: string;
+  presetQueryKey?: string | number;
+  hideBranding?: boolean;
 }
 
 const SearchDocContent: React.FC<SearchDocContentProps> = ({
   inputRef,
   placeholder,
+  onSearchStateChange,
+  isInline = false,
+  presetQuery,
+  presetQueryKey,
+  hideBranding = false,
 }) => {
-  const { kbDetail } = useStore();
+  const { kbDetail, qaModalMode, qaModalOpen } = useStore();
   const basePath = useBasePath();
   // 模糊搜索相关状态
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
@@ -124,9 +135,9 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   };
 
   // 执行搜索
-  const handleSearch = async () => {
+  const runSearch = async (query: string) => {
     if (isSearching) return;
-    if (!input.trim()) return;
+    if (!query.trim()) return;
 
     setIsSearching(true);
     setSearchResults([]);
@@ -147,7 +158,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
       setIsSearching(false);
       return;
     }
-    postShareV1ChatSearch({ message: input, captcha_token: token })
+    postShareV1ChatSearch({ message: query, captcha_token: token })
       .then(res => {
         setSearchResults(res.node_result || []);
         setHasSearch(true);
@@ -155,6 +166,10 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
       .finally(() => {
         setIsSearching(false);
       });
+  };
+
+  const handleSearch = async () => {
+    runSearch(input);
   };
 
   // 处理搜索结果点击
@@ -198,32 +213,63 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
     });
   };
 
+  useEffect(() => {
+    if (isInline || !qaModalOpen || qaModalMode !== 'search') {
+      return;
+    }
+    const presetQuery = sessionStorage.getItem('search_doc_query');
+    if (!presetQuery?.trim()) {
+      return;
+    }
+    sessionStorage.removeItem('search_doc_query');
+    setInput(presetQuery);
+    setHasSearch(false);
+    runSearch(presetQuery);
+  }, [isInline, qaModalMode, qaModalOpen]);
+
+  useEffect(() => {
+    if (!isInline || !presetQuery?.trim() || presetQueryKey === undefined) {
+      return;
+    }
+    setInput(presetQuery);
+    setHasSearch(false);
+    runSearch(presetQuery);
+  }, [isInline, presetQuery, presetQueryKey]);
+
+  useEffect(() => {
+    onSearchStateChange?.(isSearching || hasSearch || searchResults.length > 0);
+  }, [hasSearch, isSearching, onSearchStateChange, searchResults.length]);
+
   return (
-    <Box>
-      <Stack
-        direction='row'
-        alignItems='center'
-        justifyContent='center'
-        gap={2}
-        sx={{ mb: 3, mt: 1 }}
-      >
-        <Image
-          src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
-          alt='logo'
-          width={46}
-          height={46}
-          unoptimized
-          style={{
-            objectFit: 'contain',
-          }}
-        />
-        <Typography
-          variant='h6'
-          sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+    <Box
+      sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+    >
+      {!hideBranding && (
+        <Stack
+          direction='row'
+          alignItems='center'
+          justifyContent='center'
+          gap={2}
+          sx={{ mb: 3, mt: 1 }}
         >
-          {kbDetail?.settings?.title}
-        </Typography>
-      </Stack>
+          <Image
+            src={getImagePath(kbDetail?.settings?.icon || Logo.src, basePath)}
+            alt='logo'
+            width={46}
+            height={46}
+            unoptimized
+            style={{
+              objectFit: 'contain',
+            }}
+          />
+          <Typography
+            variant='h6'
+            sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+          >
+            {BrandName}
+          </Typography>
+        </Stack>
+      )}
       {/* 搜索输入框 */}
       <TextField
         ref={inputRef}
@@ -341,7 +387,12 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
           </Typography>
 
           {/* 搜索结果列表 */}
-          <Stack sx={{ overflow: 'auto', maxHeight: 'calc(100vh - 334px)' }}>
+          <Stack
+            sx={{
+              overflow: 'auto',
+              maxHeight: isInline ? '100%' : 'calc(100vh - 334px)',
+            }}
+          >
             {searchResults.map((result, index) => (
               <StyledSearchResultItem
                 direction='row'

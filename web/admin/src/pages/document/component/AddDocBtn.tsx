@@ -3,6 +3,7 @@ import { ConstsCrawlerSource } from '@/request';
 import { Box, Button } from '@mui/material';
 import { useState } from 'react';
 import AddDocByType from './AddDocByType';
+import { CREATE_DOC_IMPORT_TYPES, TYPE_CONFIG } from './AddDocByType/constants';
 import DocAddByCustomText from './DocAddByCustomText';
 
 interface InputContentProps {
@@ -32,6 +33,17 @@ const AddDocBtn = ({
   const [key, setKey] = useState<ConstsCrawlerSource | null>(null);
   const [docFileKey, setDocFileKey] = useState<1 | 2>(1);
 
+  const importMenuItems: TreeMenuItem[] = exportFile
+    ? CREATE_DOC_IMPORT_TYPES.map(type => ({
+        key: type,
+        label: TYPE_CONFIG[type].label,
+        onClick: () => {
+          setUploadOpen(true);
+          setKey(type);
+        },
+      }))
+    : [];
+
   const menuItems: TreeMenuItem[] = [
     {
       key: 'docFile',
@@ -49,114 +61,7 @@ const AddDocBtn = ({
         setCustomDocOpen(true);
       },
     },
-    ...(exportFile
-      ? [
-          {
-            key: ConstsCrawlerSource.CrawlerSourceFile,
-            label: '通过离线文件导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceFile);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceUrl,
-            label: '通过 URL 导入',
-            onClick: () => {
-              setKey(ConstsCrawlerSource.CrawlerSourceUrl);
-              setUploadOpen(true);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceRSS,
-            label: '通过 RSS 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceRSS);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceSitemap,
-            label: '通过 Sitemap 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceSitemap);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceNotion,
-            label: '通过 Notion 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceNotion);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceEpub,
-            label: '通过 Epub 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceEpub);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceWikijs,
-            label: '通过 Wiki.js 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceWikijs);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceYuque,
-            label: '通过 语雀 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceYuque);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceSiyuan,
-            label: '通过 思源笔记 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceSiyuan);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceMindoc,
-            label: '通过 MinDoc 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceMindoc);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceFeishu,
-            label: '通过飞书文档导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceFeishu);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceDingtalk,
-            label: '通过钉钉文档导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceDingtalk);
-            },
-          },
-          {
-            key: ConstsCrawlerSource.CrawlerSourceConfluence,
-            label: '通过 Confluence 导入',
-            onClick: () => {
-              setUploadOpen(true);
-              setKey(ConstsCrawlerSource.CrawlerSourceConfluence);
-            },
-          },
-        ]
-      : []),
+    ...importMenuItems,
   ];
 
   const close = () => {

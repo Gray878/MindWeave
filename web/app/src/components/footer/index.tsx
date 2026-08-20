@@ -8,6 +8,7 @@ import {
   Footer,
   WelcomeFooter as WelcomeFooterComponent,
 } from '@panda-wiki/ui';
+export { default as LandingFooter } from './LandingFooter';
 
 export const FooterProvider = ({
   showBrand = true,
@@ -26,6 +27,10 @@ export const FooterProvider = ({
   }, [kbDetail, isWelcomePage]);
   const footerSetting = kbDetail?.settings?.footer_settings;
   const customStyle = kbDetail?.settings?.web_app_custom_style;
+  const footerLogo = getImagePath(
+    footerSetting?.brand_logo || kbDetail?.settings?.icon || '',
+    basePath,
+  );
 
   return (
     <Footer
@@ -33,7 +38,7 @@ export const FooterProvider = ({
       catalogWidth={catalogWidth}
       showBrand={showBrand}
       isDocPage={isDocPage}
-      logo='https://release.baizhi.cloud/panda-wiki/icon.png'
+      logo={footerLogo}
       docWidth={docWidth}
       footerSetting={
         footerSetting
@@ -65,13 +70,17 @@ export const WelcomeFooter = ({
   const basePath = useBasePath();
   const footerSetting = kbDetail?.settings?.footer_settings;
   const customStyle = kbDetail?.settings?.web_app_custom_style;
+  const footerLogo = getImagePath(
+    footerSetting?.brand_logo || kbDetail?.settings?.icon || '',
+    basePath,
+  );
   return (
     <WelcomeFooterComponent
       mobile={mobile}
       catalogWidth={catalogWidth}
       showBrand={showBrand}
       isDocPage={false}
-      logo='https://release.baizhi.cloud/panda-wiki/icon.png'
+      logo={footerLogo}
       docWidth='full'
       footerSetting={
         footerSetting

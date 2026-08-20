@@ -26,18 +26,19 @@ import (
 )
 
 type NodeUsecase struct {
-	nodeRepo     *pg.NodeRepository
-	appRepo      *pg.AppRepository
-	ragRepo      *mq.RAGRepository
-	kbRepo       *pg.KnowledgeBaseRepository
-	modelRepo    *pg.ModelRepository
-	userRepo     *pg.UserRepository
-	authRepo     *pg.AuthRepo
-	llmUsecase   *LLMUsecase
-	logger       *log.Logger
-	s3Client     *s3.MinioClient
-	rAGService   rag.RAGService
-	modelUsecase *ModelUsecase
+	nodeRepo         *pg.NodeRepository
+	appRepo          *pg.AppRepository
+	ragRepo          *mq.RAGRepository
+	kbRepo           *pg.KnowledgeBaseRepository
+	modelRepo        *pg.ModelRepository
+	userRepo         *pg.UserRepository
+	authRepo         *pg.AuthRepo
+	llmUsecase       *LLMUsecase
+	logger           *log.Logger
+	s3Client         *s3.MinioClient
+	rAGService       rag.RAGService
+	modelUsecase     *ModelUsecase
+	graphSyncUseCase *GraphSyncUseCase // 图谱同步服务
 }
 
 func NewNodeUsecase(
@@ -53,20 +54,22 @@ func NewNodeUsecase(
 	modelRepo *pg.ModelRepository,
 	authRepo *pg.AuthRepo,
 	modelUsecase *ModelUsecase,
+	graphSyncUseCase *GraphSyncUseCase,
 ) *NodeUsecase {
 	return &NodeUsecase{
-		nodeRepo:     nodeRepo,
-		rAGService:   ragService,
-		appRepo:      appRepo,
-		ragRepo:      ragRepo,
-		kbRepo:       kbRepo,
-		authRepo:     authRepo,
-		userRepo:     userRepo,
-		llmUsecase:   llmUsecase,
-		modelRepo:    modelRepo,
-		logger:       logger.WithModule("usecase.node"),
-		s3Client:     s3Client,
-		modelUsecase: modelUsecase,
+		nodeRepo:         nodeRepo,
+		rAGService:       ragService,
+		appRepo:          appRepo,
+		ragRepo:          ragRepo,
+		kbRepo:           kbRepo,
+		authRepo:         authRepo,
+		userRepo:         userRepo,
+		llmUsecase:       llmUsecase,
+		modelRepo:        modelRepo,
+		logger:           logger.WithModule("usecase.node"),
+		s3Client:         s3Client,
+		modelUsecase:     modelUsecase,
+		graphSyncUseCase: graphSyncUseCase,
 	}
 }
 
@@ -77,6 +80,47 @@ func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq, use
 	if err != nil {
 		return "", err
 	}
+
+	// 异步同步到知识图谱
+	if u.graphSyncUseCase != nil {
+		go func() {
+			// 获取完整的节点信息
+			node, err := u.nodeRepo.GetNodeByID(context.Background(), nodeID)
+			if err != nil {
+				u.logger.Error("get node for graph sync failed",
+					log.String("node_id", nodeID),
+					log.Error(err))
+				return
+			}
+
+			// 根据节点类型同步
+			if node.Type == domain.NodeTypeDocument {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentCreate, nodeID, map[string]any{
+					"kb_id":     req.KBID,
+					"user_id":   userId,
+					"parent_id": node.ParentID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncDocumentCreate(ctx, node, req.KBID, userId)
+				}); err != nil {
+					u.logger.Error("sync document create to graph failed",
+						log.String("node_id", nodeID),
+						log.Error(err))
+				}
+			} else if node.Type == domain.NodeTypeFolder {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderCreate, nodeID, map[string]any{
+					"kb_id":     req.KBID,
+					"parent_id": node.ParentID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderCreate(ctx, node, req.KBID)
+				}); err != nil {
+					u.logger.Error("sync folder create to graph failed",
+						log.String("node_id", nodeID),
+						log.Error(err))
+				}
+			}
+		}()
+	}
+
 	return nodeID, nil
 }
 
@@ -138,6 +182,11 @@ func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string
 func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq) error {
 	switch req.Action {
 	case "delete":
+		allNodeIDs, err := u.nodeRepo.CollectAllChildNodeIDs(ctx, req.KBID, req.IDs)
+		if err != nil {
+			return err
+		}
+
 		docIDs, err := u.nodeRepo.Delete(ctx, req.KBID, req.IDs)
 		if err != nil {
 			return err
@@ -153,6 +202,34 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeVectorContentRequests); err != nil {
 			return err
 		}
+
+		// 异步同步删除到知识图谱
+		if u.graphSyncUseCase != nil {
+			go func() {
+				for _, nodeID := range allNodeIDs {
+					// 尝试删除文档节点
+					if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentDelete, nodeID, map[string]any{
+						"kb_id": req.KBID,
+					}, func(ctx context.Context) error {
+						return u.graphSyncUseCase.SyncDocumentDelete(ctx, nodeID)
+					}); err != nil {
+						u.logger.Error("sync document delete to graph failed",
+							log.String("node_id", nodeID),
+							log.Error(err))
+					}
+					// 尝试删除文件夹节点
+					if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderDelete, nodeID, map[string]any{
+						"kb_id": req.KBID,
+					}, func(ctx context.Context) error {
+						return u.graphSyncUseCase.SyncFolderDelete(ctx, nodeID)
+					}); err != nil {
+						u.logger.Error("sync folder delete to graph failed",
+							log.String("node_id", nodeID),
+							log.Error(err))
+					}
+				}
+			}()
+		}
 	}
 	return nil
 }
@@ -162,6 +239,45 @@ func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, use
 	if err != nil {
 		return err
 	}
+
+	// 异步同步到知识图谱
+	if u.graphSyncUseCase != nil {
+		go func() {
+			// 获取完整的节点信息
+			node, err := u.nodeRepo.GetNodeByID(context.Background(), req.ID)
+			if err != nil {
+				u.logger.Error("get node for graph sync failed",
+					log.String("node_id", req.ID),
+					log.Error(err))
+				return
+			}
+
+			// 根据节点类型同步
+			if node.Type == domain.NodeTypeDocument {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentUpdate, req.ID, map[string]any{
+					"kb_id":   req.KBID,
+					"user_id": userId,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncDocumentUpdate(ctx, node, userId)
+				}); err != nil {
+					u.logger.Error("sync document update to graph failed",
+						log.String("node_id", req.ID),
+						log.Error(err))
+				}
+			} else if node.Type == domain.NodeTypeFolder {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderUpdate, req.ID, map[string]any{
+					"kb_id": req.KBID,
+				}, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderUpdate(ctx, node)
+				}); err != nil {
+					u.logger.Error("sync folder update to graph failed",
+						log.String("node_id", req.ID),
+						log.Error(err))
+				}
+			}
+		}()
+	}
+
 	return nil
 }
 
@@ -254,7 +370,54 @@ func (u *NodeUsecase) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID,
 }
 
 func (u *NodeUsecase) MoveNode(ctx context.Context, req *domain.MoveNodeReq) error {
-	return u.nodeRepo.MoveNodeBetween(ctx, req.ID, req.ParentID, req.PrevID, req.NextID, req.KbID)
+	// 获取移动前的父节点ID
+	oldNode, err := u.nodeRepo.GetNodeByID(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	oldParentID := oldNode.ParentID
+
+	// 执行移动操作
+	err = u.nodeRepo.MoveNodeBetween(ctx, req.ID, req.ParentID, req.PrevID, req.NextID, req.KbID)
+	if err != nil {
+		return err
+	}
+
+	// 异步同步到知识图谱
+	if u.graphSyncUseCase != nil && oldParentID != req.ParentID {
+		go func() {
+			movePayload := map[string]any{
+				"kb_id":         req.KbID,
+				"old_parent_id": oldParentID,
+				"new_parent_id": req.ParentID,
+			}
+
+			if oldNode.Type == domain.NodeTypeFolder {
+				if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskFolderMove, req.ID, movePayload, func(ctx context.Context) error {
+					return u.graphSyncUseCase.SyncFolderMove(ctx, req.ID, oldParentID, req.ParentID)
+				}); err != nil {
+					u.logger.Error("sync folder move to graph failed",
+						log.String("node_id", req.ID),
+						log.String("old_parent_id", oldParentID),
+						log.String("new_parent_id", req.ParentID),
+						log.Error(err))
+				}
+				return
+			}
+
+			if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskDocumentMove, req.ID, movePayload, func(ctx context.Context) error {
+				return u.graphSyncUseCase.SyncDocumentMove(ctx, req.ID, oldParentID, req.ParentID)
+			}); err != nil {
+				u.logger.Error("sync document move to graph failed",
+					log.String("node_id", req.ID),
+					log.String("old_parent_id", oldParentID),
+					log.String("new_parent_id", req.ParentID),
+					log.Error(err))
+			}
+		}()
+	}
+
+	return nil
 }
 
 func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryReq) (string, error) {

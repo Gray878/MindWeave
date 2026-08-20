@@ -17,12 +17,13 @@ import (
 )
 
 type UserUsecase struct {
-	repo   *pg.UserRepository
-	logger *log.Logger
-	config *config.Config
+	repo             *pg.UserRepository
+	graphSyncUseCase *GraphSyncUseCase
+	logger           *log.Logger
+	config           *config.Config
 }
 
-func NewUserUsecase(repo *pg.UserRepository, logger *log.Logger, config *config.Config) (*UserUsecase, error) {
+func NewUserUsecase(repo *pg.UserRepository, graphSyncUseCase *GraphSyncUseCase, logger *log.Logger, config *config.Config) (*UserUsecase, error) {
 	if config.AdminPassword != "" {
 		if err := repo.UpsertDefaultUser(context.Background(), &domain.User{
 			ID:       uuid.New().String(),
@@ -34,14 +35,44 @@ func NewUserUsecase(repo *pg.UserRepository, logger *log.Logger, config *config.
 		}
 	}
 	return &UserUsecase{
-		repo:   repo,
-		logger: logger.WithModule("usecase.user"),
-		config: config,
+		repo:             repo,
+		graphSyncUseCase: graphSyncUseCase,
+		logger:           logger.WithModule("usecase.user"),
+		config:           config,
 	}, nil
 }
 
 func (u *UserUsecase) CreateUser(ctx context.Context, user *domain.User, edition consts.LicenseEdition) error {
-	return u.repo.CreateUser(ctx, user, edition)
+	if err := u.repo.CreateUser(ctx, user, edition); err != nil {
+		return err
+	}
+
+	if u.graphSyncUseCase != nil {
+		go func() {
+			createdAt := user.CreatedAt
+			if createdAt.IsZero() {
+				createdAt = time.Now()
+			}
+			if err := u.graphSyncUseCase.runWithRetry(context.Background(), graphSyncTaskUserCreate, user.ID, map[string]any{
+				"account":    user.Account,
+				"role":       string(user.Role),
+				"created_at": createdAt.Format(time.RFC3339Nano),
+			}, func(syncCtx context.Context) error {
+				return u.graphSyncUseCase.SyncUserCreate(syncCtx, &domain.User{
+					ID:        user.ID,
+					Account:   user.Account,
+					Role:      user.Role,
+					CreatedAt: createdAt,
+				})
+			}); err != nil {
+				u.logger.Error("sync user create to graph failed",
+					log.String("user_id", user.ID),
+					log.Error(err))
+			}
+		}()
+	}
+
+	return nil
 }
 
 func (u *UserUsecase) VerifyUserAndGenerateToken(ctx context.Context, req v1.LoginReq) (string, error) {

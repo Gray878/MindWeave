@@ -19,7 +19,7 @@ import {
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useURLSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = searchParams.get('redirect') || '/stat';
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [see, setSee] = useState(false);
@@ -84,7 +84,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              PandaWiki
+              MindWeave
             </Stack>
             <TextField
               value={account}

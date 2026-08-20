@@ -11,7 +11,7 @@ import (
 	"github.com/chaitin/panda-wiki/mq"
 )
 
-func createApp() (*App, error) {
+func createApp() (*App, func(), error) {
 	wire.Build(
 		wire.Struct(new(App), "*"),
 		wire.NewSet(
@@ -20,7 +20,7 @@ func createApp() (*App, error) {
 			handler.ProviderSet,
 		),
 	)
-	return &App{}, nil
+	return &App{}, nil, nil
 }
 
 type App struct {

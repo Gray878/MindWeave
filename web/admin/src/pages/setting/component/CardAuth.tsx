@@ -865,52 +865,30 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeDingTalk}
-                      disabled={!isBusiness}
                     >
-                      钉钉登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                      钉钉登录
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeFeishu}
-                      disabled={!isBusiness}
                     >
-                      飞书登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                      飞书登录
                     </MenuItem>
-                    <MenuItem
-                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeWeCom}
-                      disabled={!isBusiness}
-                    >
-                      企业微信登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    <MenuItem value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeWeCom}>
+                      企业微信登录
                     </MenuItem>
-                    <MenuItem
-                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth}
-                      disabled={!isBusiness}
-                    >
-                      OAuth 登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    <MenuItem value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth}>
+                      OAuth 登录
                     </MenuItem>
-                    <MenuItem
-                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS}
-                      disabled={!isBusiness}
-                    >
-                      CAS 登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    <MenuItem value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS}>
+                      CAS 登录
                     </MenuItem>
-                    <MenuItem
-                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP}
-                      disabled={!isBusiness}
-                    >
-                      LDAP 登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    <MenuItem value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP}>
+                      LDAP 登录
                     </MenuItem>
                     <MenuItem
                       value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub}
-                      disabled={!isBusiness}
                     >
-                      GitHub 登录{' '}
-                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                      GitHub 登录
                     </MenuItem>
                   </Select>
                 )}

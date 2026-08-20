@@ -49,35 +49,33 @@ const CardWebStats = ({ data, id, refresh }: CardWebStatsProps) => {
 
   return (
     <SettingCardItem title='统计分析' isEdit={isEdit} onSubmit={onSubmit}>
-      <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
-        <FormItem label='文档浏览量'>
-          <Controller
-            control={control}
-            name='pv_enable'
-            render={({ field }) => (
-              <RadioGroup
-                row
-                {...field}
-                onChange={e => {
-                  field.onChange(+e.target.value as 1 | 2);
-                  setIsEdit(true);
-                }}
-              >
-                <FormControlLabel
-                  value={1}
-                  control={<Radio size='small' />}
-                  label={<Box sx={{ width: 100 }}>展示</Box>}
-                />
-                <FormControlLabel
-                  value={2}
-                  control={<Radio size='small' />}
-                  label={<Box sx={{ width: 100 }}>隐藏</Box>}
-                />
-              </RadioGroup>
-            )}
-          />
-        </FormItem>
-      </VersionMask>
+      <FormItem label='文档浏览量'>
+        <Controller
+          control={control}
+          name='pv_enable'
+          render={({ field }) => (
+            <RadioGroup
+              row
+              {...field}
+              onChange={e => {
+                field.onChange(+e.target.value as 1 | 2);
+                setIsEdit(true);
+              }}
+            >
+              <FormControlLabel
+                value={1}
+                control={<Radio size='small' />}
+                label={<Box sx={{ width: 100 }}>展示</Box>}
+              />
+              <FormControlLabel
+                value={2}
+                control={<Radio size='small' />}
+                label={<Box sx={{ width: 100 }}>隐藏</Box>}
+              />
+            </RadioGroup>
+          )}
+        />
+      </FormItem>
     </SettingCardItem>
   );
 };

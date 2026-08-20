@@ -92,67 +92,14 @@ func NewAppUsecase(
 }
 
 func (u *AppUsecase) ValidateUpdateApp(ctx context.Context, id string, req *domain.UpdateAppReq) error {
-	app, err := u.repo.GetAppDetail(ctx, id)
-	if err != nil {
-		return err
+	if req == nil || req.Settings == nil {
+		return nil
 	}
 
-	limitation := domain.GetBaseEditionLimitation(ctx)
-	if !limitation.AllowCopyProtection && app.Settings.CopySetting != req.Settings.CopySetting {
-		return domain.ErrPermissionDenied
-	}
-
-	if !limitation.AllowWatermark {
-		if app.Settings.WatermarkSetting != req.Settings.WatermarkSetting || app.Settings.WatermarkContent != req.Settings.WatermarkContent {
-			return domain.ErrPermissionDenied
-		}
-	}
-
-	if !limitation.AllowAdvancedBot {
-		if !slices.Equal(app.Settings.WechatServiceContainKeywords, req.Settings.WechatServiceContainKeywords) ||
-			!slices.Equal(app.Settings.WechatServiceEqualKeywords, req.Settings.WechatServiceEqualKeywords) {
-			return domain.ErrPermissionDenied
-		}
-
-		if app.Settings.WeChatAppAdvancedSetting.FeedbackEnable != req.Settings.WeChatAppAdvancedSetting.FeedbackEnable ||
-			app.Settings.WeChatAppAdvancedSetting.TextResponseEnable != req.Settings.WeChatAppAdvancedSetting.TextResponseEnable ||
-			app.Settings.WeChatAppAdvancedSetting.Prompt != req.Settings.WeChatAppAdvancedSetting.Prompt ||
-			!slices.Equal(app.Settings.WeChatAppAdvancedSetting.FeedbackType, req.Settings.WeChatAppAdvancedSetting.FeedbackType) ||
-			app.Settings.WeChatAppAdvancedSetting.DisclaimerContent != req.Settings.WeChatAppAdvancedSetting.DisclaimerContent {
-			return domain.ErrPermissionDenied
-		}
-	} else {
-		if req.Settings.WeChatAppAdvancedSetting.Prompt == "" {
-			req.Settings.WeChatAppAdvancedSetting.Prompt = domain.SystemDefaultPrompt
-		}
-	}
-
-	if !limitation.AllowCommentAudit && app.Settings.WebAppCommentSettings.ModerationEnable != req.Settings.WebAppCommentSettings.ModerationEnable {
-		return domain.ErrPermissionDenied
-	}
-
-	if !limitation.AllowOpenAIBotSettings {
-		if app.Settings.OpenAIAPIBotSettings.IsEnabled != req.Settings.OpenAIAPIBotSettings.IsEnabled || app.Settings.OpenAIAPIBotSettings.SecretKey != req.Settings.OpenAIAPIBotSettings.SecretKey {
-			return domain.ErrPermissionDenied
-		}
-	}
-
-	if !limitation.AllowCustomCopyright {
-		if app.Settings.WidgetBotSettings.CopyrightHideEnabled != req.Settings.WidgetBotSettings.CopyrightHideEnabled || app.Settings.WidgetBotSettings.CopyrightInfo != req.Settings.WidgetBotSettings.CopyrightInfo {
-			return domain.ErrPermissionDenied
-		}
-		if app.Settings.ConversationSetting.CopyrightHideEnabled != req.Settings.ConversationSetting.CopyrightHideEnabled {
-			return domain.ErrPermissionDenied
-		}
-		if req.Settings.ConversationSetting.CopyrightInfo != domain.SettingCopyrightInfo && app.Settings.ConversationSetting.CopyrightInfo != req.Settings.ConversationSetting.CopyrightInfo {
-			req.Settings.ConversationSetting.CopyrightInfo = domain.SettingCopyrightInfo
-		}
-	}
-
-	if !limitation.AllowMCPServer {
-		if app.Settings.MCPServerSettings.IsEnabled != req.Settings.MCPServerSettings.IsEnabled {
-			return domain.ErrPermissionDenied
-		}
+	// 所有功能已开放，移除遗留的更新前权限/存在性校验。
+	// 保留 Prompt 默认值设置逻辑。
+	if req.Settings.WeChatAppAdvancedSetting.Prompt == "" {
+		req.Settings.WeChatAppAdvancedSetting.Prompt = domain.SystemDefaultPrompt
 	}
 
 	return nil
@@ -212,7 +159,7 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 			u.logger.Error("wechat GetAppDetailByKBIDAndAppType failed", log.Error(err))
 		}
 
-		var feedback = "\n\n---  \n\n本回答由 PandaWiki 基于 AI 生成，仅供参考。\n[👍 满意](%s) | [👎 不满意](%s)"
+		var feedback = "\n\n---  \n\n本回答由 MindWeave 基于 AI 生成，仅供参考。\n[👍 满意](%s) | [👎 不满意](%s)"
 		var likeUrl = "%s/feedback?score=1&message_id=%s"
 		var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
 		var messageId string
@@ -554,10 +501,7 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		StatsSetting:      app.Settings.StatsSetting,
 	}
 
-	if !domain.GetBaseEditionLimitation(ctx).AllowCustomCopyright {
-		appDetailResp.Settings.ConversationSetting.CopyrightHideEnabled = false
-		appDetailResp.Settings.ConversationSetting.CopyrightInfo = domain.SettingCopyrightInfo
-	}
+	// 版权信息自定义功能已开放，移除强制覆盖逻辑
 
 	// init ai feedback string
 	if app.Settings.AIFeedbackSettings.AIFeedbackType == nil {
@@ -686,18 +630,11 @@ func (u *AppUsecase) ShareGetWebAppInfo(ctx context.Context, kbID string, authId
 	if app.Settings.HomePageSetting == "" {
 		appInfo.Settings.HomePageSetting = consts.HomePageSettingDoc
 	}
-	showBrand := true
-	defaultDisclaimer := "本回答由 PandaWiki 基于 AI 生成，仅供参考。"
+	defaultDisclaimer := "本回答由 MindWeave 基于 AI 生成，仅供参考。"
 
-	if !domain.GetBaseEditionLimitation(ctx).AllowCustomCopyright {
-		appInfo.Settings.WebAppCustomSettings.ShowBrandInfo = &showBrand
+	// 版权信息自定义功能已开放，移除强制覆盖逻辑
+	if appInfo.Settings.DisclaimerSettings.Content == nil {
 		appInfo.Settings.DisclaimerSettings.Content = &defaultDisclaimer
-		appInfo.Settings.ConversationSetting.CopyrightHideEnabled = false
-		appInfo.Settings.ConversationSetting.CopyrightInfo = domain.SettingCopyrightInfo
-	} else {
-		if appInfo.Settings.DisclaimerSettings.Content == nil {
-			appInfo.Settings.DisclaimerSettings.Content = &defaultDisclaimer
-		}
 	}
 
 	return appInfo, nil
@@ -733,10 +670,7 @@ func (u *AppUsecase) GetWidgetAppInfo(ctx context.Context, kbID string) (*domain
 		appInfo.RecommendNodes = nodes
 	}
 
-	if !domain.GetBaseEditionLimitation(ctx).AllowCustomCopyright {
-		appInfo.Settings.WidgetBotSettings.CopyrightHideEnabled = false
-		appInfo.Settings.WidgetBotSettings.CopyrightInfo = domain.SettingCopyrightInfo
-	}
+	// 版权信息自定义功能已开放，移除强制覆盖逻辑
 
 	return appInfo, nil
 }
